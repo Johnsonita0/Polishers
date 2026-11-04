@@ -1,13 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
 import {
   ArrowLeft, ArrowRight, ArrowUpRight, Building2, Check, CheckCircle2,
-  ChevronRight, Factory, HardHat, Home, Image, Mail, MapPin, MessageCircle,
-  Phone, ShieldCheck, Sparkles, X,
+  ChevronDown, ChevronRight, Factory, HardHat, Home, Image, Mail, MapPin,
+  MessageCircle, Pause, Phone, Play, ShieldCheck, Sparkles, Star, X,
 } from 'lucide-react'
 import {
   Link, useLocation, useNavigate, useParams, useSearchParams,
 } from 'react-router-dom'
-import { gallery, services, steps } from '../../data'
+import { faqs, gallery, services, steps, testimonials } from '../../data'
 import { supabase, supabaseConfigured } from '../../supabase'
 import {
   PageHero, PublicLayout, SectionHeading, ServiceCard,
@@ -28,6 +28,21 @@ const heroSlides = [
 export function HomePage() {
   const [heroSlide, setHeroSlide] = useState(0)
   const heroVideoRef = useRef(null)
+  const [openFaq, setOpenFaq] = useState(0)
+  const [savedTestimonials, setSavedTestimonials] = useState(() => {
+    try {
+      const saved = JSON.parse(window.localStorage.getItem('polishers-testimonials') || '[]')
+      return Array.isArray(saved) ? saved : []
+    } catch {
+      return []
+    }
+  })
+  const [testimonialIndex, setTestimonialIndex] = useState(0)
+  const [testimonialForm, setTestimonialForm] = useState({ name: '', role: '', quote: '', rating: 5 })
+  const [testimonialSent, setTestimonialSent] = useState(false)
+  const [galleryPaused, setGalleryPaused] = useState(false)
+  const galleryViewportRef = useRef(null)
+  const galleryDragRef = useRef(null)
 
   useEffect(() => {
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches || heroSlides[heroSlide].type === 'video') return
@@ -48,7 +63,81 @@ export function HomePage() {
     }
   }, [heroSlide])
 
+  useEffect(() => {
+    const viewport = galleryViewportRef.current
+    if (!viewport || galleryPaused) return
+    let frameId
+    let previousTime
+    const moveGallery = (time) => {
+      if (previousTime !== undefined) {
+        const cycleWidth = viewport.querySelector('.home-gallery-group')?.getBoundingClientRect().width || 0
+        if (cycleWidth > 0) {
+          viewport.scrollLeft += (time - previousTime) * 0.012
+          if (viewport.scrollLeft >= cycleWidth) viewport.scrollLeft %= cycleWidth
+        }
+      }
+      previousTime = time
+      frameId = window.requestAnimationFrame(moveGallery)
+    }
+    frameId = window.requestAnimationFrame(moveGallery)
+    return () => window.cancelAnimationFrame(frameId)
+  }, [galleryPaused])
+
   const activeHeroSlide = heroSlides[heroSlide]
+  const homeTestimonials = [...savedTestimonials, ...testimonials]
+  const activeTestimonial = homeTestimonials[testimonialIndex] || testimonials[0]
+
+  function updateTestimonial(key, value) {
+    setTestimonialForm((current) => ({ ...current, [key]: value }))
+    setTestimonialSent(false)
+  }
+
+  function submitTestimonial(event) {
+    event.preventDefault()
+    const submission = {
+      name: testimonialForm.name.trim(),
+      role: testimonialForm.role.trim(),
+      quote: testimonialForm.quote.trim(),
+      rating: testimonialForm.rating,
+    }
+    const nextTestimonials = [submission, ...savedTestimonials]
+    setSavedTestimonials(nextTestimonials)
+    try {
+      window.localStorage.setItem('polishers-testimonials', JSON.stringify(nextTestimonials))
+    } catch {
+      // Keep the new testimonial available for this page session if storage is unavailable.
+    }
+    setTestimonialIndex(0)
+    setTestimonialForm({ name: '', role: '', quote: '', rating: 5 })
+    setTestimonialSent(true)
+  }
+
+  function startGalleryDrag(event) {
+    if (event.pointerType === 'mouse' && event.button !== 0) return
+    galleryDragRef.current = { pointerType: event.pointerType, startX: event.clientX, scrollLeft: galleryViewportRef.current.scrollLeft, moved: false }
+    setGalleryPaused(true)
+    if (event.pointerType === 'mouse') event.currentTarget.setPointerCapture(event.pointerId)
+  }
+
+  function moveGalleryDrag(event) {
+    const drag = galleryDragRef.current
+    if (!drag || drag.pointerType !== 'mouse') return
+    const distance = event.clientX - drag.startX
+    if (Math.abs(distance) > 4) {
+      drag.moved = true
+      event.preventDefault()
+      galleryViewportRef.current.scrollLeft = drag.scrollLeft - distance
+    }
+  }
+
+  function endGalleryDrag() {
+    galleryDragRef.current = null
+    setGalleryPaused(false)
+  }
+
+  function handleGalleryItemClick(event) {
+    if (galleryDragRef.current?.moved) event.preventDefault()
+  }
 
   return (
     <PublicLayout>
@@ -68,7 +157,7 @@ export function HomePage() {
               <div><b>YEARS</b><span>Years of service</span></div>
             </div>
           </div>
-          <div className={`hero-visual ${activeHeroSlide.type === 'video' ? 'hero-visual-video' : activeHeroSlide.title === 'Polishers Da Elite logo' ? 'hero-visual-logo' : ''}`} role="group" aria-roledescription="carousel" aria-label="Featured cleaning spaces">
+          <div className={`hero-visual ${activeHeroSlide.type === 'video' ? 'hero-visual-video' : activeHeroSlide.title === 'Polishers Da Elite logo' ? 'hero-visual-logo' : ''}`} style={activeHeroSlide.title === 'Polishers Da Elite logo' ? { '--hero-mobile-image': `url(${heroSlides[2].src})` } : undefined} role="group" aria-roledescription="carousel" aria-label="Featured cleaning spaces">
             {heroSlides.map((slide, index) => slide.type === 'image' && <img className={`hero-slide ${index === heroSlide ? 'hero-slide-active' : ''}`} key={slide.src} src={slide.src} alt={index === heroSlide ? slide.title : ''} aria-hidden={index !== heroSlide} style={{ objectPosition: slide.position, objectFit: slide.fit, backgroundColor: slide.background }} />)}
             <video className={`hero-slide ${activeHeroSlide.type === 'video' ? 'hero-slide-active' : ''}`} ref={heroVideoRef} src={heroVideoSource} muted playsInline preload="metadata" onEnded={() => setHeroSlide((current) => (current + 1) % heroSlides.length)} aria-label="Featured cleaning video" aria-hidden={activeHeroSlide.type !== 'video'} tabIndex={-1} />
             <div className="hero-note"><b>Free site inspection</b><span>Response within 24 hours</span></div>
@@ -80,6 +169,28 @@ export function HomePage() {
         <div className="container">
           <div className="home-services-heading"><SectionHeading eyebrow="WHAT WE DO" title="Our Services" /><Link to="/services">See all <ArrowRight size={15} /></Link></div>
           <div className="service-grid">{services.map((service) => <ServiceCard key={service.slug} service={service} iconOnly />)}</div>
+        </div>
+      </section>
+
+      <section className="home-gallery-section section">
+        <div className="container">
+          <div className="home-section-heading">
+            <SectionHeading eyebrow="A PICTURE OF CARE" title="Spaces, polished." copy="A few recent spaces we have cared for." />
+            <div className="home-gallery-actions">
+              <button className="home-gallery-motion-control" type="button" title={galleryPaused ? 'Play gallery' : 'Pause gallery'} aria-label={galleryPaused ? 'Play gallery' : 'Pause gallery'} aria-pressed={galleryPaused} onClick={() => setGalleryPaused((paused) => !paused)}>{galleryPaused ? <Play size={16} /> : <Pause size={16} />}</button>
+              <Link to="/gallery" className="text-link">View all work <ArrowUpRight size={15} /></Link>
+            </div>
+          </div>
+          <div className="home-gallery-viewport" ref={galleryViewportRef} role="region" aria-label="Recent cleaning work" onPointerDown={startGalleryDrag} onPointerMove={moveGalleryDrag} onPointerUp={endGalleryDrag} onPointerCancel={endGalleryDrag}>
+            <div className="home-gallery-track" onClickCapture={handleGalleryItemClick}>
+              {[0, 1].map((group) => <div className="home-gallery-group" key={group} aria-hidden={group === 1 || undefined}>
+                {gallery.map((item, index) => <Link className="home-gallery-item" to="/gallery" key={`${item.title}-${index}`} tabIndex={group === 1 ? -1 : undefined}>
+                  <img src={item.image} alt={group === 1 ? '' : item.title} loading="lazy" />
+                  <span><small>{item.category}</small><b>{item.title}</b></span>
+                </Link>)}
+              </div>)}
+            </div>
+          </div>
         </div>
       </section>
 
@@ -100,6 +211,57 @@ export function HomePage() {
         <div className="container">
           <SectionHeading eyebrow="OUR PROMISE" title="Why Choose Polishers" centered />
           <div className="values-grid">{[['P', 'Professionalism'], ['O', 'Ownership'], ['L', 'Leadership'], ['I', 'Integrity'], ['S', 'Service'], ['H', 'High Standards'], ['E', 'Excellence'], ['R', 'Reliability'], ['S', 'Satisfaction']].map(([letter, name]) => <article className="value-item" key={name}><b>{letter}</b><span>{name}</span></article>)}</div>
+        </div>
+      </section>
+
+      <section className="home-faq-section section">
+        <div className="container home-faq-layout">
+          <SectionHeading eyebrow="GOOD TO KNOW" title="A few quick answers." copy="Have a different question? Get in touch and we will help." />
+          <div className="home-faq-list">
+            {faqs.map((item, index) => <article className="home-faq-item" key={item.question}>
+              <h3>
+                <button type="button" aria-expanded={openFaq === index} aria-controls={`home-faq-answer-${index}`} onClick={() => setOpenFaq((current) => current === index ? -1 : index)}>
+                  <span>{item.question}</span><ChevronDown size={18} aria-hidden="true" />
+                </button>
+              </h3>
+              {openFaq === index && <div className="home-faq-answer" id={`home-faq-answer-${index}`}><p>{item.answer}</p></div>}
+            </article>)}
+          </div>
+        </div>
+      </section>
+
+      <section className="home-testimonials-section section">
+        <div className="container">
+          <SectionHeading eyebrow="KIND WORDS" title="A clean that stays with you." copy="Notes from people who have trusted us with their spaces." />
+          <div className="home-testimonials-layout">
+            <div className="home-testimonial-slider">
+              <article className="home-testimonial-slide" aria-live="polite">
+                <div className="home-testimonial-stars" role="img" aria-label={`${activeTestimonial.rating} out of 5 stars`}>
+                  {Array.from({ length: 5 }, (_, index) => <Star key={index} size={16} fill={index < activeTestimonial.rating ? 'currentColor' : 'none'} />)}
+                </div>
+                <blockquote>“{activeTestimonial.quote}”</blockquote>
+                <div className="home-testimonial-author"><b>{activeTestimonial.name}</b><span>{activeTestimonial.role}</span></div>
+              </article>
+              <div className="home-testimonial-controls">
+                <button className="round-control" type="button" aria-label="Previous testimonial" onClick={() => setTestimonialIndex((current) => (current - 1 + homeTestimonials.length) % homeTestimonials.length)}><ArrowLeft size={16} /></button>
+                <span>{testimonialIndex + 1}<i>/</i>{homeTestimonials.length}</span>
+                <button className="round-control" type="button" aria-label="Next testimonial" onClick={() => setTestimonialIndex((current) => (current + 1) % homeTestimonials.length)}><ArrowRight size={16} /></button>
+              </div>
+            </div>
+            <form className="home-testimonial-form" onSubmit={submitTestimonial}>
+              <span className="eyebrow">SHARE YOUR EXPERIENCE</span>
+              <h3>Leave a testimonial</h3>
+              <label>Your name<input name="testimonial-name" autoComplete="name" maxLength={70} required value={testimonialForm.name} onChange={(event) => updateTestimonial('name', event.target.value)} /></label>
+              <label>Your role<input name="testimonial-role" maxLength={70} required value={testimonialForm.role} onChange={(event) => updateTestimonial('role', event.target.value)} placeholder="e.g. Homeowner" /></label>
+              <label>Your note<textarea name="testimonial-quote" rows="3" maxLength={500} required value={testimonialForm.quote} onChange={(event) => updateTestimonial('quote', event.target.value)} /></label>
+              <fieldset className="home-testimonial-rating">
+                <legend>Your rating</legend>
+                <div>{[1, 2, 3, 4, 5].map((rating) => <button key={rating} type="button" aria-label={`${rating} star${rating === 1 ? '' : 's'}`} aria-pressed={testimonialForm.rating === rating} onClick={() => updateTestimonial('rating', rating)}><Star size={21} fill={rating <= testimonialForm.rating ? 'currentColor' : 'none'} /></button>)}</div>
+              </fieldset>
+              <button className="button button-dark button-large" type="submit">Send testimonial <ArrowUpRight size={16} /></button>
+              {testimonialSent && <p className="home-testimonial-success" role="status">Thank you. Your testimonial has been added.</p>}
+            </form>
+          </div>
         </div>
       </section>
 

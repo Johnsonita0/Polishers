@@ -29,6 +29,8 @@ export function PublicHeader() {
             <Link className="nav-mobile-quote" to="/quote">Request a quote <ArrowUpRight size={15} /></Link>
           </nav>
           <div className="header-actions">
+            <a className="header-phone" href="tel:+2348000000000" aria-label="Call Polishers Da Elite"><Phone size={17} /><span>+234 800 000 0000</span></a>
+            <a className="header-whatsapp" href="https://wa.me/2348000000000" target="_blank" rel="noreferrer" aria-label="Chat with us on WhatsApp"><MessageCircle size={17} /><span>WhatsApp</span></a>
             <Link className="button button-dark button-small" to="/quote">Request a quote <ArrowUpRight size={15} /></Link>
           </div>
         </div>

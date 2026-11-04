@@ -1,0 +1,5 @@
+.git
+.vercel
+UI/
+app/dist/
+app/node_modules/
