@@ -59,7 +59,7 @@ export function Footer() {
         <div><h4>Contact</h4><a href="tel:+2348000000000">+234 800 000 0000</a><a href="https://wa.me/2348000000000">WhatsApp us</a><a href="mailto:hello@polishersdaelite.com">hello@polishersdaelite.com</a></div>
         <div><h4>Visit</h4><span>Lagos, Nigeria</span><span>Lagos & nearby areas</span><span>Monday – Saturday, 8am – 6pm</span></div>
       </div>
-      <div className="container footer-bottom"><span>© {new Date().getFullYear()} Polishers Da Elite Cleaning Services</span><Link to="/admin/login">Team login <ArrowUpRight size={13} /></Link></div>
+      <div className="container footer-bottom"><span>© {new Date().getFullYear()} Polishers Da Elite Cleaning Services</span></div>
     </footer>
   )
 }
