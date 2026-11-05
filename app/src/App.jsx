@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useLayoutEffect } from 'react'
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import AdminLayout from './components/layout/AdminLayout'
 import Dashboard from './pages/admin/Dashboard'
@@ -20,20 +20,16 @@ import {
 function ScrollToHash() {
   const location = useLocation()
 
-  useEffect(() => {
-    const frameId = window.requestAnimationFrame(() => {
-      const hash = location.hash.slice(1)
-      if (!hash) {
-        window.scrollTo({ top: 0, left: 0, behavior: 'auto' })
-        return
-      }
+  useLayoutEffect(() => {
+    const hash = location.hash.slice(1)
+    if (!hash) {
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' })
+      return
+    }
 
-      const target = document.getElementById(hash) || document.querySelector(`[data-section="${hash}"]`)
-      if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' })
-      else window.scrollTo({ top: 0, left: 0, behavior: 'auto' })
-    })
-
-    return () => window.cancelAnimationFrame(frameId)
+    const target = document.getElementById(hash) || document.querySelector(`[data-section="${hash}"]`)
+    if (target) target.scrollIntoView({ behavior: 'instant', block: 'start' })
+    else window.scrollTo({ top: 0, left: 0, behavior: 'instant' })
   }, [location.key, location.pathname, location.hash])
 
   return null
