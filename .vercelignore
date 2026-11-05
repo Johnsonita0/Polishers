@@ -1,5 +1,5 @@
 .git
 .vercel
-UI/
+UI/*.pdf
 app/dist/
 app/node_modules/
