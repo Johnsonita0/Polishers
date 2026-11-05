@@ -2,7 +2,9 @@ import { useEffect, useMemo, useState } from 'react'
 import { ArrowUpRight, Download, Search } from 'lucide-react'
 import Badge from '../../components/ui/Badge.jsx'
 import Card from '../../components/ui/Card.jsx'
+import { useToast } from '../../components/ui/ToastProvider'
 import { supabase, supabaseConfigured } from '../../supabase'
+import { friendlyErrorMessage } from '../../utils/friendlyError'
 
 const filters = ['all', 'new', 'contacted', 'quoted', 'scheduled', 'completed']
 const tones = { new: 'aqua', contacted: 'blue', quoted: 'amber', scheduled: 'purple', in_progress: 'orange', completed: 'green', cancelled: 'neutral', lost: 'red' }
@@ -13,26 +15,43 @@ export default function Requests() {
   const [search, setSearch] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
+  const showToast = useToast()
 
   useEffect(() => {
     let active = true
     async function load() {
       if (!supabaseConfigured) {
         setLoading(false)
-        setError('Connect Supabase to load your request inbox.')
+        const message = 'Your request inbox is unavailable because Supabase is not connected.'
+        setError(message)
+        showToast({ tone: 'error', title: 'Request inbox unavailable', message })
         return
       }
-      let query = supabase.from('service_requests').select('id, reference, full_name, phone, service_type, address, preferred_date, status, created_at').order('created_at', { ascending: false }).limit(100)
-      if (status !== 'all') query = query.eq('status', status)
-      const { data, error: requestError } = await query
-      if (!active) return
-      if (requestError) setError(requestError.message)
-      else setRequests(data || [])
-      setLoading(false)
+      try {
+        let query = supabase.from('service_requests').select('id, reference, full_name, phone, service_type, address, preferred_date, status, created_at').order('created_at', { ascending: false }).limit(100)
+        if (status !== 'all') query = query.eq('status', status)
+        const { data, error: requestError } = await query
+        if (!active) return
+        if (requestError) {
+          const message = friendlyErrorMessage(requestError, 'Could not load requests. Check your connection and try again.')
+          setError(message)
+          showToast({ tone: 'error', title: 'Could not load requests', message })
+        } else {
+          setError('')
+          setRequests(data || [])
+        }
+      } catch (issue) {
+        if (!active) return
+        const message = friendlyErrorMessage(issue, 'Could not load requests. Check your connection and try again.')
+        setError(message)
+        showToast({ tone: 'error', title: 'Could not load requests', message })
+      } finally {
+        if (active) setLoading(false)
+      }
     }
     load()
     return () => { active = false }
-  }, [status])
+  }, [status, showToast])
 
   const visible = useMemo(() => requests.filter((request) =>
     [request.reference, request.full_name, request.service_type, request.address]

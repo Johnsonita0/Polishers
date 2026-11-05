@@ -4,7 +4,9 @@ import { Link } from 'react-router-dom'
 import Badge from '../../components/ui/Badge.jsx'
 import Card from '../../components/ui/Card.jsx'
 import SearchSelect from '../../components/ui/SearchSelect'
+import { useToast } from '../../components/ui/ToastProvider'
 import { supabase, supabaseConfigured } from '../../supabase'
+import { friendlyErrorMessage } from '../../utils/friendlyError'
 
 const fallbackRequests = [
   { reference: 'PDE-000128', full_name: 'Johnson', service_type: 'Residential', address: 'Lekki Phase 1', status: 'new', created_at: new Date().toISOString() },
@@ -18,25 +20,35 @@ export default function Dashboard() {
   const [requests, setRequests] = useState([])
   const [loadError, setLoadError] = useState('')
   const [chartRange, setChartRange] = useState('Last 30 days')
+  const showToast = useToast()
 
   useEffect(() => {
     let active = true
     async function loadRequests() {
-      const { data, error } = await supabase
-        .from('service_requests')
-        .select('reference, full_name, service_type, address, status, created_at')
-        .order('created_at', { ascending: false })
-        .limit(8)
-      if (!active) return
-      if (error) {
-        setLoadError(error.message)
-        return
+      try {
+        const { data, error } = await supabase
+          .from('service_requests')
+          .select('reference, full_name, service_type, address, status, created_at')
+          .order('created_at', { ascending: false })
+          .limit(8)
+        if (!active) return
+        if (error) {
+          const message = friendlyErrorMessage(error, 'Could not load recent requests. Check your connection and try again.')
+          setLoadError(message)
+          showToast({ tone: 'error', title: 'Dashboard data unavailable', message })
+          return
+        }
+        setRequests(data || [])
+      } catch (issue) {
+        if (!active) return
+        const message = friendlyErrorMessage(issue, 'Could not load recent requests. Check your connection and try again.')
+        setLoadError(message)
+        showToast({ tone: 'error', title: 'Dashboard data unavailable', message })
       }
-      setRequests(data || [])
     }
     if (supabaseConfigured) loadRequests()
     return () => { active = false }
-  }, [])
+  }, [showToast])
 
   const rows = supabaseConfigured ? requests : fallbackRequests
   const newCount = useMemo(() => rows.filter((item) => item.status === 'new').length, [rows])

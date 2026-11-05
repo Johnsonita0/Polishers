@@ -10,6 +10,8 @@ import {
 import { faqs, gallery, services, steps, testimonials } from '../../data'
 import { supabase, supabaseConfigured } from '../../supabase'
 import SearchSelect from '../../components/ui/SearchSelect'
+import { useToast } from '../../components/ui/ToastProvider'
+import { friendlyErrorMessage } from '../../utils/friendlyError'
 import {
   PageHero, PublicLayout, SectionHeading, ServiceCard,
 } from '../../components/public/PublicComponents'
@@ -325,6 +327,7 @@ export function AboutPage() {
 export function ContactPage() {
   const [sent, setSent] = useState(false)
   const [error, setError] = useState('')
+  const showToast = useToast()
   async function submit(event) {
     event.preventDefault()
     setError('')
@@ -333,8 +336,11 @@ export function ContactPage() {
     try {
       await saveRequest(payload)
       setSent(true)
+      showToast({ tone: 'success', title: 'Message sent', message: 'Thanks for reaching out. Our team will be in touch soon.' })
     } catch (issue) {
-      setError(issue.message || 'We could not send your message. Please try again.')
+      const message = friendlyErrorMessage(issue, 'We could not send your message. Check your connection and try again.')
+      setError(message)
+      showToast({ tone: 'error', title: 'Message not sent', message })
     }
   }
   return <PublicLayout><PageHero eyebrow="WE'RE RIGHT HERE" title={<>A little hello<br /><em>goes a long way.</em></>} copy="Questions, plans, a space that needs a fresh start? We'd love to hear from you." image={services[0].image} />
@@ -366,6 +372,7 @@ export function QuotePage() {
   const [form, setForm] = useState({ service_type: initialService, property_type: '', size_note: '', address: '', preferred_date: '', preferred_time: '', full_name: '', phone: '', email: '', message: '', photo: null })
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
+  const showToast = useToast()
   const update = (key, value) => setForm((current) => ({ ...current, [key]: value }))
   const serviceLabel = serviceBySlug[form.service_type]?.title || form.service_type
   const canContinue = [
@@ -380,7 +387,9 @@ export function QuotePage() {
     setError('')
     if (step < steps.length - 1) {
       if (!canContinue) {
-        setError(step === 0 ? 'Choose a service to continue.' : 'Please complete the required fields.')
+        const message = step === 0 ? 'Choose a service to continue.' : 'Complete the required fields to continue.'
+        setError(message)
+        showToast({ tone: 'error', title: 'A few details are missing', message })
         return
       }
       setStep(step + 1)
@@ -397,9 +406,12 @@ export function QuotePage() {
       }
       const { photo, ...values } = form
       const result = await saveRequest({ ...values, photo_urls: photoPath ? [photoPath] : [] })
+      showToast({ tone: 'success', title: 'Quote request sent', message: 'We received your request and will be in touch within 24 hours.' })
       navigate('/quote/success', { state: { reference: result.reference || `PDE-${String(Date.now()).slice(-6)}` } })
     } catch (issue) {
-      setError(issue.message || 'We could not submit your request. Please try again.')
+      const message = friendlyErrorMessage(issue, 'We could not submit your request. Check your connection and try again.')
+      setError(message)
+      showToast({ tone: 'error', title: 'Request not sent', message })
     } finally {
       setBusy(false)
     }
@@ -410,7 +422,7 @@ export function QuotePage() {
           {step === 0 && <div className="quote-step"><h3>What can we help with?</h3><p>Choose the service that best fits your space.</p><div className="service-choice-grid">{services.map((service) => { const Icon = serviceIcons[service.icon] || Sparkles; return <button type="button" className={`service-choice ${form.service_type === service.slug ? 'choice-selected' : ''}`} onClick={() => update('service_type', service.slug)} key={service.slug}><Icon size={20} /><span>{service.title}</span>{form.service_type === service.slug && <CheckCircle2 size={17} />}</button> })}<button type="button" className={`service-choice ${form.service_type === 'other' ? 'choice-selected' : ''}`} onClick={() => update('service_type', 'other')}><Sparkles size={20} /><span>Something else</span>{form.service_type === 'other' && <CheckCircle2 size={17} />}</button></div></div>}
           {step === 1 && <div className="quote-step"><h3>Tell us about your space.</h3><p>The more we know, the better we can prepare.</p><label>What kind of property?<SearchSelect value={form.property_type} onChange={(value) => update('property_type', value)} options={[{ value: '', label: 'Choose one' }, { value: 'House', label: 'House' }, { value: 'Apartment', label: 'Apartment' }, { value: 'Office', label: 'Office' }, { value: 'Shop or retail space', label: 'Shop or retail space' }, { value: 'Warehouse or facility', label: 'Warehouse or facility' }, { value: 'Other', label: 'Other' }]} placeholder="Choose one" /></label><div className="field-row"><label>Approx. size or rooms<input value={form.size_note} onChange={(event) => update('size_note', event.target.value)} placeholder="e.g. 3 bedrooms" /></label><label>Area / location<input required value={form.address} onChange={(event) => update('address', event.target.value)} placeholder="e.g. Lekki Phase 1" /></label></div><label>Anything else we should know?<textarea rows="3" value={form.message} onChange={(event) => update('message', event.target.value)} placeholder="A little note about your space..." /></label></div>}
           {step === 2 && <div className="quote-step"><h3>When works for you?</h3><p>We'll confirm a time with you before anything is booked.</p><label>Preferred date<input type="date" min={new Date().toISOString().slice(0, 10)} required value={form.preferred_date} onChange={(event) => update('preferred_date', event.target.value)} /></label><span className="input-label">Preferred time</span><div className="time-choice">{['Morning', 'Afternoon', 'Flexible'].map((time) => <button type="button" key={time} onClick={() => update('preferred_time', time)} className={form.preferred_time === time ? 'time-selected' : ''}>{time}</button>)}</div></div>}
-          {step === 3 && <div className="quote-step"><h3>How can we reach you?</h3><p>We'll get back to you within 24 hours.</p><label>Your full name<input autoComplete="name" required value={form.full_name} onChange={(event) => update('full_name', event.target.value)} placeholder="e.g. Amara Okafor" /></label><div className="field-row"><label>Phone number<input type="tel" autoComplete="tel" required value={form.phone} onChange={(event) => update('phone', event.target.value)} placeholder="+234 809 538 9606" /></label><label>Email address <span>(optional)</span><input type="email" autoComplete="email" value={form.email} onChange={(event) => update('email', event.target.value)} placeholder="you@example.com" /></label></div><label className="upload-field"><Image size={20} /><span><b>{form.photo?.name || 'Add a photo of your space'}</b><small>Optional · JPG, PNG or WebP · up to 5 MB</small></span><input type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => { const file = event.target.files?.[0]; if (file && file.size > 5 * 1024 * 1024) { setError('Photos must be smaller than 5 MB.'); return } update('photo', file || null); setError('') }} /></label></div>}
+          {step === 3 && <div className="quote-step"><h3>How can we reach you?</h3><p>We'll get back to you within 24 hours.</p><label>Your full name<input autoComplete="name" required value={form.full_name} onChange={(event) => update('full_name', event.target.value)} placeholder="e.g. Amara Okafor" /></label><div className="field-row"><label>Phone number<input type="tel" autoComplete="tel" required value={form.phone} onChange={(event) => update('phone', event.target.value)} placeholder="+234 809 538 9606" /></label><label>Email address <span>(optional)</span><input type="email" autoComplete="email" value={form.email} onChange={(event) => update('email', event.target.value)} placeholder="you@example.com" /></label></div><label className="upload-field"><Image size={20} /><span><b>{form.photo?.name || 'Add a photo of your space'}</b><small>Optional · JPG, PNG or WebP · up to 5 MB</small></span><input type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => { const file = event.target.files?.[0]; if (file && file.size > 5 * 1024 * 1024) { const message = 'Photos must be under 5 MB. Choose a smaller image and try again.'; setError(message); showToast({ tone: 'error', title: 'Photo too large', message }); return } update('photo', file || null); setError('') }} /></label></div>}
           {step === 4 && <div className="quote-step"><h3>Does this look right?</h3><p>Have a final look before we send your request.</p><div className="review-card">{[['Service', serviceLabel, 0], ['Your space', `${form.property_type}${form.size_note ? ` · ${form.size_note}` : ''}`, 1], ['Area', form.address, 1], ['Preferred time', `${form.preferred_date} · ${form.preferred_time}`, 2], ['Your details', `${form.full_name} · ${form.phone}${form.email ? ` · ${form.email}` : ''}`, 3]].map(([label, value, editStep]) => <div key={label}><span><small>{label}</small><b>{value}</b></span><button type="button" className="text-link" onClick={() => setStep(editStep)}>Edit</button></div>)}</div><p className="review-note"><ShieldCheck size={16} /> This is a request, not a confirmed booking. We'll be in touch to discuss the details.</p></div>}
           {error && <p className="form-error">{error}</p>}
           <div className="quote-form-actions">{step > 0 && <button type="button" className="button button-quiet" onClick={() => { setStep(step - 1); setError('') }}><ArrowLeft size={15} /> Back</button>}<button className="button button-dark button-large" type="submit" disabled={busy}>{busy ? 'Sending…' : step === steps.length - 1 ? 'Send my request' : 'Continue'}{!busy && <ArrowRight size={16} />}</button></div>

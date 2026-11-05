@@ -3,7 +3,9 @@ import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import {
   Bell, ChevronDown, FileText, LayoutDashboard, LogOut, Menu, Settings, Users, X,
 } from 'lucide-react'
+import { useToast } from '../ui/ToastProvider'
 import { supabase } from '../../supabase'
+import { friendlyErrorMessage } from '../../utils/friendlyError'
 
 const links = [
   { label: 'Overview', path: '/admin', icon: LayoutDashboard, end: true },
@@ -17,39 +19,55 @@ export default function AdminLayout() {
   const [error, setError] = useState('')
   const [menuOpen, setMenuOpen] = useState(false)
   const navigate = useNavigate()
+  const showToast = useToast()
 
   useEffect(() => {
     let active = true
     async function loadProfile() {
       if (!supabase) {
-        setError('Connect Supabase to enable the private admin dashboard.')
+        const message = 'The private admin dashboard is unavailable because Supabase is not connected.'
+        setError(message)
+        showToast({ tone: 'error', title: 'Admin connection unavailable', message })
         return
       }
-      const { data: sessionData, error: sessionError } = await supabase.auth.getSession()
-      if (sessionError) {
-        setError(sessionError.message)
-        return
+      try {
+        const { data: sessionData, error: sessionError } = await supabase.auth.getSession()
+        if (!active) return
+        if (sessionError) {
+          const message = friendlyErrorMessage(sessionError, 'We could not verify your sign-in session. Check your connection and try again.')
+          setError(message)
+          showToast({ tone: 'error', title: 'Could not verify session', message })
+          return
+        }
+        if (!sessionData.session) {
+          navigate('/admin/login', { replace: true })
+          return
+        }
+        const { data, error: profileError } = await supabase
+          .from('profiles')
+          .select('full_name, role, is_active')
+          .eq('id', sessionData.session.user.id)
+          .single()
+        if (!active) return
+        if (profileError) {
+          const message = friendlyErrorMessage(profileError, 'We could not verify your team access. Try again or ask an administrator to check your profile.')
+          setError(message)
+          showToast({ tone: 'error', title: 'Could not verify access', message })
+          return
+        }
+        if (!data.is_active) {
+          await supabase.auth.signOut()
+          showToast({ tone: 'error', title: 'Profile access is disabled', message: 'Your Supabase sign-in is valid, but admin access is disabled on this profile. An administrator must set is_active to true in public.profiles.' })
+          navigate('/admin/login', { replace: true })
+          return
+        }
+        setProfile(data)
+      } catch (issue) {
+        if (!active) return
+        const message = friendlyErrorMessage(issue, 'We could not reach the admin service. Check your connection and try again.')
+        setError(message)
+        showToast({ tone: 'error', title: 'Admin service unavailable', message })
       }
-      if (!sessionData.session) {
-        navigate('/admin/login', { replace: true })
-        return
-      }
-      const { data, error: profileError } = await supabase
-        .from('profiles')
-        .select('full_name, role, is_active')
-        .eq('id', sessionData.session.user.id)
-        .single()
-      if (!active) return
-      if (profileError) {
-        setError(profileError.message)
-        return
-      }
-      if (!data.is_active) {
-        await supabase.auth.signOut()
-        navigate('/admin/login', { replace: true })
-        return
-      }
-      setProfile(data)
     }
     loadProfile()
     const { data: listener } = supabase?.auth.onAuthStateChange((_event, session) => {
@@ -59,15 +77,18 @@ export default function AdminLayout() {
       active = false
       listener?.subscription?.unsubscribe()
     }
-  }, [navigate])
+  }, [navigate, showToast])
 
   async function signOut() {
-    const { error: signOutError } = await supabase.auth.signOut()
-    if (signOutError) {
-      setError(signOutError.message)
-      return
+    try {
+      const { error: signOutError } = await supabase.auth.signOut()
+      if (signOutError) throw signOutError
+      showToast({ tone: 'success', title: 'Signed out', message: 'Your admin session has ended.' })
+      navigate('/admin/login', { replace: true })
+    } catch (issue) {
+      const message = friendlyErrorMessage(issue, 'We could not sign you out because the service did not respond. Check your connection and try again.')
+      showToast({ tone: 'error', title: 'Could not sign out', message })
     }
-    navigate('/admin/login', { replace: true })
   }
 
   if (error) return <div className="admin-setup"><span className="admin-setup-icon">!</span><p className="eyebrow">ADMIN ACCESS</p><h1>One last connection.</h1><p>{error}</p><a href="/admin/login">Back to sign in</a></div>

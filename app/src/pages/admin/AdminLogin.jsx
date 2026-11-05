@@ -1,7 +1,9 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { ArrowLeft, ArrowRight, Eye, EyeOff, ShieldCheck, Sparkles } from 'lucide-react'
+import { useToast } from '../../components/ui/ToastProvider'
 import { supabase, supabaseConfigured } from '../../supabase'
+import { friendlyErrorMessage } from '../../utils/friendlyError'
 
 export default function AdminLogin() {
   const [email, setEmail] = useState('')
@@ -10,33 +12,56 @@ export default function AdminLogin() {
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
   const navigate = useNavigate()
+  const showToast = useToast()
 
   async function submit(event) {
     event.preventDefault()
     setError('')
     if (!supabaseConfigured) {
-      setError('Supabase is not connected yet. Add the project URL and anon key to enable admin sign-in.')
+      const message = 'Admin sign-in is unavailable because the Supabase project is not connected.'
+      setError(message)
+      showToast({ tone: 'error', title: 'Sign-in unavailable', message })
       return
     }
     setBusy(true)
-    const { data, error: authError } = await supabase.auth.signInWithPassword({ email, password })
-    if (authError) {
-      setError(authError.message)
+    try {
+      const { data, error: authError } = await supabase.auth.signInWithPassword({ email, password })
+      if (authError) {
+        const message = friendlyErrorMessage(authError, 'We could not sign you in. Check your connection and try again.')
+        setError(message)
+        showToast({ tone: 'error', title: 'Could not sign in', message })
+        return
+      }
+
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('role, is_active')
+        .eq('id', data.user.id)
+        .single()
+      if (profileError) {
+        await supabase.auth.signOut()
+        const message = friendlyErrorMessage(profileError, 'We could not verify your team access. Try again, or ask an administrator to check your profile.')
+        setError(message)
+        showToast({ tone: 'error', title: 'Could not verify access', message })
+        return
+      }
+      if (!profile?.is_active) {
+        await supabase.auth.signOut()
+        const message = 'Supabase accepted your sign-in, but admin access is disabled on this profile. In public.profiles, set is_active to true for this user, then sign in again.'
+        setError(message)
+        showToast({ tone: 'error', title: 'Profile access is disabled', message })
+        return
+      }
+
+      showToast({ tone: 'success', title: 'Signed in', message: 'Your admin workspace is ready.' })
+      navigate('/admin', { replace: true })
+    } catch (issue) {
+      const message = friendlyErrorMessage(issue, 'We could not sign you in. Check your connection and try again.')
+      setError(message)
+      showToast({ tone: 'error', title: 'Could not sign in', message })
+    } finally {
       setBusy(false)
-      return
     }
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('role, is_active')
-      .eq('id', data.user.id)
-      .single()
-    if (profileError || !profile?.is_active) {
-      await supabase.auth.signOut()
-      setError(profileError?.message || 'This team account is inactive.')
-      setBusy(false)
-      return
-    }
-    navigate('/admin', { replace: true })
   }
 
   return (

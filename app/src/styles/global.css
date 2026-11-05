@@ -39,6 +39,13 @@ h1 em, h2 em, h3 em { color: var(--aqua); font-family: var(--serif); font-weight
 .topline a { display: flex; gap: 8px; align-items: center; color: #fff; }
 .site-header { position: sticky; z-index: 20; top: 0; background: rgba(255,255,255,.97); border-bottom: 1px solid rgba(11,31,58,.07); backdrop-filter: blur(14px); }
 section[id] { scroll-margin-top: calc(var(--site-header-height) + 12px); }
+.toast-viewport { position: fixed; z-index: 100; top: max(16px, env(safe-area-inset-top)); right: 16px; display: grid; width: min(390px, calc(100vw - 32px)); gap: 10px; pointer-events: none; }
+.toast { display: flex; align-items: flex-start; gap: 11px; padding: 14px; border: 1px solid var(--line); border-left: 4px solid var(--navy); border-radius: 6px; background: #fff; box-shadow: 0 12px 32px rgba(11, 31, 58, .16); animation: toast-enter .2s ease-out; pointer-events: auto; }
+.toast-success { border-left-color: #17834a; }.toast-error { border-left-color: #c43d3d; }.toast-info { border-left-color: #0c7481; }
+.toast-icon { flex: 0 0 auto; margin-top: 1px; color: var(--navy); }.toast-success .toast-icon { color: #17834a; }.toast-error .toast-icon { color: #c43d3d; }.toast-info .toast-icon { color: #0c7481; }
+.toast-copy { min-width: 0; flex: 1; }.toast-copy strong { display: block; margin-bottom: 3px; color: var(--ink); font-size: 13px; }.toast-copy p { margin: 0; color: #53616c; font-size: 12px; line-height: 1.5; }
+.toast-dismiss { display: grid; width: 28px; height: 28px; flex: 0 0 auto; place-items: center; margin: -5px -5px 0 0; border: 0; border-radius: 4px; background: transparent; color: #64727c; cursor: pointer; }.toast-dismiss:hover { background: #f0f3f4; color: var(--ink); }
+@keyframes toast-enter { from { opacity: 0; transform: translateY(-7px); } to { opacity: 1; transform: translateY(0); } }
 .header-inner { min-height: 82px; display: flex; align-items: center; justify-content: space-between; gap: 28px; }
 .brand { display: inline-flex; gap: 10px; align-items: center; color: var(--navy); flex-shrink: 0; }
 .brand-mark { width: 39px; height: 39px; display: grid; place-items: center; border-radius: 12px; color: var(--navy); background: #e3f7f7; }
