@@ -66,14 +66,24 @@ export function HomePage() {
   useEffect(() => {
     const viewport = galleryViewportRef.current
     if (!viewport || galleryPaused) return
+    const firstGroup = viewport.querySelector('.home-gallery-group')
+    if (!firstGroup) return
+
+    const cycleWidth = firstGroup.getBoundingClientRect().width + 16
+    viewport.scrollLeft = cycleWidth
+
     let frameId
     let previousTime
     const moveGallery = (time) => {
       if (previousTime !== undefined) {
-        const cycleWidth = viewport.querySelector('.home-gallery-group')?.getBoundingClientRect().width || 0
-        if (cycleWidth > 0) {
-          viewport.scrollLeft += (time - previousTime) * 0.012
-          if (viewport.scrollLeft >= cycleWidth) viewport.scrollLeft %= cycleWidth
+        const delta = (time - previousTime) * 0.045
+        viewport.scrollLeft -= delta
+
+        if (viewport.scrollLeft <= 0) {
+          viewport.scrollLeft += cycleWidth
+        }
+        if (viewport.scrollLeft >= cycleWidth * 2) {
+          viewport.scrollLeft -= cycleWidth
         }
       }
       previousTime = time
@@ -114,19 +124,24 @@ export function HomePage() {
 
   function startGalleryDrag(event) {
     if (event.pointerType === 'mouse' && event.button !== 0) return
-    galleryDragRef.current = { pointerType: event.pointerType, startX: event.clientX, scrollLeft: galleryViewportRef.current.scrollLeft, moved: false }
+    galleryDragRef.current = {
+      pointerType: event.pointerType,
+      startX: event.clientX,
+      startScrollLeft: galleryViewportRef.current.scrollLeft,
+      moved: false,
+    }
     setGalleryPaused(true)
-    if (event.pointerType === 'mouse') event.currentTarget.setPointerCapture(event.pointerId)
+    if (event.currentTarget.setPointerCapture) event.currentTarget.setPointerCapture(event.pointerId)
   }
 
   function moveGalleryDrag(event) {
     const drag = galleryDragRef.current
-    if (!drag || drag.pointerType !== 'mouse') return
+    if (!drag) return
     const distance = event.clientX - drag.startX
     if (Math.abs(distance) > 4) {
       drag.moved = true
       event.preventDefault()
-      galleryViewportRef.current.scrollLeft = drag.scrollLeft - distance
+      galleryViewportRef.current.scrollLeft = drag.startScrollLeft - distance
     }
   }
 
@@ -149,7 +164,7 @@ export function HomePage() {
             <p>Professional cleaning delivered with precision, reliability and class, for homes, offices, factories and estates of every size.</p>
             <div className="hero-buttons">
               <Link to="/quote" className="button button-aqua button-large">Get a Free Quote</Link>
-              <a className="button button-glass button-large" href="https://wa.me/2348000000000" target="_blank" rel="noreferrer">WhatsApp Us</a>
+              <a className="button button-glass button-large" href="https://wa.me/2348095389606" target="_blank" rel="noreferrer">WhatsApp Us</a>
             </div>
             <div className="hero-stats">
               <div><b>JOBS DONE</b><span>Jobs completed</span></div>
@@ -322,7 +337,7 @@ export function ContactPage() {
     }
   }
   return <PublicLayout><PageHero eyebrow="WE'RE RIGHT HERE" title={<>A little hello<br /><em>goes a long way.</em></>} copy="Questions, plans, a space that needs a fresh start? We'd love to hear from you." image={services[0].image} />
-    <section className="section contact-section"><div className="container contact-grid"><div><SectionHeading eyebrow="TALK TO A HUMAN" title={<>Let's make it<br /><em>easy to get in touch.</em></>} /><div className="contact-details"><a href="tel:+2348000000000"><span><Phone size={19} /></span><div><small>GIVE US A CALL</small><b>+234 800 000 0000</b></div><ArrowUpRight size={16} /></a><a href="mailto:hello@polishersdaelite.com"><span><Mail size={19} /></span><div><small>DROP US A NOTE</small><b>hello@polishersdaelite.com</b></div><ArrowUpRight size={16} /></a><a href="https://wa.me/2348000000000"><span><MessageCircle size={19} /></span><div><small>WE'RE ON WHATSAPP</small><b>Let's have a chat</b></div><ArrowUpRight size={16} /></a><div className="contact-hours"><MapPin size={18} /><div><small>WHERE WE WORK</small><b>Lagos & nearby areas</b><small>Monday – Saturday, 8am – 6pm</small></div></div></div></div><div className="contact-form-card"><span className="eyebrow">SEND A QUICK MESSAGE</span><h3>What's on your mind?</h3>{sent ? <div className="form-success"><CheckCircle2 size={32} /><b>Thanks for reaching out.</b><p>Our team will be in touch soon.</p></div> : <form onSubmit={submit}><label>Your name<input name="name" required placeholder="e.g. Amara Okafor" /></label><div className="field-row"><label>Phone number<input type="tel" name="phone" required placeholder="+234" /></label><label>Email <span>(optional)</span><input type="email" name="email" placeholder="you@example.com" /></label></div><label>Your message<textarea name="message" rows="4" required placeholder="Tell us a little about what you need..." /></label>{error && <p className="form-error">{error}</p>}<button className="button button-dark button-large" type="submit">Send your message <ArrowUpRight size={16} /></button></form>}</div></div></section>
+    <section className="section contact-section"><div className="container contact-grid"><div><SectionHeading eyebrow="TALK TO A HUMAN" title={<>Let's make it<br /><em>easy to get in touch.</em></>} /><div className="contact-details"><a href="tel:+2348095389606"><span><Phone size={19} /></span><div><small>GIVE US A CALL</small><b>+234 809 538 9606</b></div><ArrowUpRight size={16} /></a><a href="mailto:hello@polishersdaelite.com"><span><Mail size={19} /></span><div><small>DROP US A NOTE</small><b>hello@polishersdaelite.com</b></div><ArrowUpRight size={16} /></a><a href="https://wa.me/2348095389606"><span><MessageCircle size={19} /></span><div><small>WE'RE ON WHATSAPP</small><b>Let's have a chat</b></div><ArrowUpRight size={16} /></a><div className="contact-hours"><MapPin size={18} /><div><small>WHERE WE WORK</small><b>Lagos & nearby areas</b><small>Monday – Saturday, 8am – 6pm</small></div></div></div></div><div className="contact-form-card"><span className="eyebrow">SEND A QUICK MESSAGE</span><h3>What's on your mind?</h3>{sent ? <div className="form-success"><CheckCircle2 size={32} /><b>Thanks for reaching out.</b><p>Our team will be in touch soon.</p></div> : <form onSubmit={submit}><label>Your name<input name="name" required placeholder="e.g. Amara Okafor" /></label><div className="field-row"><label>Phone number<input type="tel" name="phone" required placeholder="+234" /></label><label>Email <span>(optional)</span><input type="email" name="email" placeholder="you@example.com" /></label></div><label>Your message<textarea name="message" rows="4" required placeholder="Tell us a little about what you need..." /></label>{error && <p className="form-error">{error}</p>}<button className="button button-dark button-large" type="submit">Send your message <ArrowUpRight size={16} /></button></form>}</div></div></section>
   </PublicLayout>
 }
 
@@ -394,7 +409,11 @@ export function QuotePage() {
           {step === 0 && <div className="quote-step"><h3>What can we help with?</h3><p>Choose the service that best fits your space.</p><div className="service-choice-grid">{services.map((service) => { const Icon = serviceIcons[service.icon] || Sparkles; return <button type="button" className={`service-choice ${form.service_type === service.slug ? 'choice-selected' : ''}`} onClick={() => update('service_type', service.slug)} key={service.slug}><Icon size={20} /><span>{service.title}</span>{form.service_type === service.slug && <CheckCircle2 size={17} />}</button> })}<button type="button" className={`service-choice ${form.service_type === 'other' ? 'choice-selected' : ''}`} onClick={() => update('service_type', 'other')}><Sparkles size={20} /><span>Something else</span>{form.service_type === 'other' && <CheckCircle2 size={17} />}</button></div></div>}
           {step === 1 && <div className="quote-step"><h3>Tell us about your space.</h3><p>The more we know, the better we can prepare.</p><label>What kind of property?<select required value={form.property_type} onChange={(event) => update('property_type', event.target.value)}><option value="">Choose one</option><option>House</option><option>Apartment</option><option>Office</option><option>Shop or retail space</option><option>Warehouse or facility</option><option>Other</option></select></label><div className="field-row"><label>Approx. size or rooms<input value={form.size_note} onChange={(event) => update('size_note', event.target.value)} placeholder="e.g. 3 bedrooms" /></label><label>Area / location<input required value={form.address} onChange={(event) => update('address', event.target.value)} placeholder="e.g. Lekki Phase 1" /></label></div><label>Anything else we should know?<textarea rows="3" value={form.message} onChange={(event) => update('message', event.target.value)} placeholder="A little note about your space..." /></label></div>}
           {step === 2 && <div className="quote-step"><h3>When works for you?</h3><p>We'll confirm a time with you before anything is booked.</p><label>Preferred date<input type="date" min={new Date().toISOString().slice(0, 10)} required value={form.preferred_date} onChange={(event) => update('preferred_date', event.target.value)} /></label><span className="input-label">Preferred time</span><div className="time-choice">{['Morning', 'Afternoon', 'Flexible'].map((time) => <button type="button" key={time} onClick={() => update('preferred_time', time)} className={form.preferred_time === time ? 'time-selected' : ''}>{time}</button>)}</div></div>}
-          {step === 3 && <div className="quote-step"><h3>How can we reach you?</h3><p>We'll get back to you within 24 hours.</p><label>Your full name<input autoComplete="name" required value={form.full_name} onChange={(event) => update('full_name', event.target.value)} placeholder="e.g. Amara Okafor" /></label><div className="field-row"><label>Phone number<input type="tel" autoComplete="tel" required value={form.phone} onChange={(event) => update('phone', event.target.value)} placeholder="+234 800 000 0000" /></label><label>Email address <span>(optional)</span><input type="email" autoComplete="email" value={form.email} onChange={(event) => update('email', event.target.value)} placeholder="you@example.com" /></label></div><label className="upload-field"><Image size={20} /><span><b>{form.photo?.name || 'Add a photo of your space'}</b><small>Optional · JPG, PNG or WebP · up to 5 MB</small></span><input type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => { const file = event.target.files?.[0]; if (file && file.size > 5 * 1024 * 1024) { setError('Photos must be smaller than 5 MB.'); return } update('photo', file || null); setError('') }} /></label></div>}
+<<<<<<< HEAD
+          {step === 3 && <div className="quote-step"><h3>How can we reach you?</h3><p>We'll get back to you within 24 hours.</p><label>Your full name<input autoComplete="name" required value={form.full_name} onChange={(event) => update('full_name', event.target.value)} placeholder="e.g. Amara Okafor" /></label><div className="field-row"><label>Phone number<input type="tel" autoComplete="tel" required value={form.phone} onChange={(event) => update('phone', event.target.value)} placeholder="+234 809 538 9606" /></label><label>Email address <span>(optional)</span><input type="email" autoComplete="email" value={form.email} onChange={(event) => update('email', event.target.value)} placeholder="you@example.com" /></label></div><label className="upload-field"><Image size={20} /><span><b>{form.photo?.name || 'Add a photo of your space'}</b><small>Optional · JPG, PNG or WebP · up to 5 MB</small></span><input type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => { const file = event.target.files?.[0]; if (file && file.size > 5 * 1024 * 1024) { setError('Photos must be smaller than 5 MB.'); return } update('photo', file || null); setError('') }} /></label></div>}
+=======
+          {step === 3 && <div className="quote-step"><h3>How can we reach you?</h3><p>We'll get back to you within 24 hours.</p><label>Your full name<input autoComplete="name" required value={form.full_name} onChange={(event) => update('full_name', event.target.value)} placeholder="e.g. Amara Okafor" /></label><div className="field-row"><label>Phone number<input type="tel" autoComplete="tel" required value={form.phone} onChange={(event) => update('phone', event.target.value)} placeholder="+234 809 538 9606" /></label><label>Email address <span>(optional)</span><input type="email" autoComplete="email" value={form.email} onChange={(event) => update('email', event.target.value)} placeholder="you@example.com" /></label></div><label className="upload-field"><Image size={20} /><span><b>{form.photo?.name || 'Add a photo of your space'}</b><small>Optional · JPG, PNG or WebP · up to 5 MB</small></span><input type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => { const file = event.target.files?.[0]; if (file && file.size > 5 * 1024 * 1024) { setError('Photos must be smaller than 5 MB.'); return } update('photo', file || null); setError('') }} /></label></div>}
+>>>>>>> a318371 (Update contact details and gallery behavior)
           {step === 4 && <div className="quote-step"><h3>Does this look right?</h3><p>Have a final look before we send your request.</p><div className="review-card">{[['Service', serviceLabel, 0], ['Your space', `${form.property_type}${form.size_note ? ` · ${form.size_note}` : ''}`, 1], ['Area', form.address, 1], ['Preferred time', `${form.preferred_date} · ${form.preferred_time}`, 2], ['Your details', `${form.full_name} · ${form.phone}${form.email ? ` · ${form.email}` : ''}`, 3]].map(([label, value, editStep]) => <div key={label}><span><small>{label}</small><b>{value}</b></span><button type="button" className="text-link" onClick={() => setStep(editStep)}>Edit</button></div>)}</div><p className="review-note"><ShieldCheck size={16} /> This is a request, not a confirmed booking. We'll be in touch to discuss the details.</p></div>}
           {error && <p className="form-error">{error}</p>}
           <div className="quote-form-actions">{step > 0 && <button type="button" className="button button-quiet" onClick={() => { setStep(step - 1); setError('') }}><ArrowLeft size={15} /> Back</button>}<button className="button button-dark button-large" type="submit" disabled={busy}>{busy ? 'Sending…' : step === steps.length - 1 ? 'Send my request' : 'Continue'}{!busy && <ArrowRight size={16} />}</button></div>
@@ -405,7 +424,7 @@ export function QuotePage() {
 
 export function QuoteSuccess() {
   const location = useLocation()
-  return <PublicLayout><section className="success-page"><div className="success-card"><span className="success-icon"><CheckCircle2 size={37} /></span><span className="eyebrow">REQUEST RECEIVED</span><h1>Well, this is a<br /><em>good start.</em></h1><p>Your space is on our mind already. Our team will be in touch within 24 hours to talk through the details.</p><div className="reference-number"><small>YOUR REFERENCE</small><b>{location.state?.reference || 'PDE-000000'}</b></div><a className="button button-aqua button-large" href="https://wa.me/2348000000000" target="_blank" rel="noreferrer"><MessageCircle size={17} /> Chat with us on WhatsApp</a><Link to="/" className="success-home">Back to home <ArrowRight size={14} /></Link></div></section></PublicLayout>
+  return <PublicLayout><section className="success-page"><div className="success-card"><span className="success-icon"><CheckCircle2 size={37} /></span><span className="eyebrow">REQUEST RECEIVED</span><h1>Well, this is a<br /><em>good start.</em></h1><p>Your space is on our mind already. Our team will be in touch within 24 hours to talk through the details.</p><div className="reference-number"><small>YOUR REFERENCE</small><b>{location.state?.reference || 'PDE-000000'}</b></div><a className="button button-aqua button-large" href="https://wa.me/2348095389606" target="_blank" rel="noreferrer"><MessageCircle size={17} /> Chat with us on WhatsApp</a><Link to="/" className="success-home">Back to home <ArrowRight size={14} /></Link></div></section></PublicLayout>
 }
 
 export function NotFound() {

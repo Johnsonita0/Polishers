@@ -6,7 +6,7 @@ import Card from '../../components/ui/Card.jsx'
 import { supabase, supabaseConfigured } from '../../supabase'
 
 const fallbackRequests = [
-  { reference: 'PDE-000128', full_name: 'Amara Okafor', service_type: 'Residential', address: 'Lekki Phase 1', status: 'new', created_at: new Date().toISOString() },
+  { reference: 'PDE-000128', full_name: 'Johnson', service_type: 'Residential', address: 'Lekki Phase 1', status: 'new', created_at: new Date().toISOString() },
   { reference: 'PDE-000127', full_name: 'Tunde Adeyemi', service_type: 'Commercial', address: 'Victoria Island', status: 'contacted', created_at: new Date(Date.now() - 3_600_000).toISOString() },
   { reference: 'PDE-000126', full_name: 'Nneka Eze', service_type: 'Post-construction', address: 'Ikoyi', status: 'quoted', created_at: new Date(Date.now() - 86_400_000).toISOString() },
 ]
