@@ -7,7 +7,7 @@ import { Link, NavLink } from 'react-router-dom'
 import { services } from '../../data'
 
 const serviceIcons = { Home, Building2, Factory, HardHat }
-const navItems = [['Services', '/services'], ['Our work', '/gallery'], ['About us', '/about'], ['Contact', '/contact']]
+const navItems = [['Services', '/services#services'], ['Our work', '/gallery#gallery'], ['About us', '/about#about'], ['Contact', '/contact#contact-section']]
 
 export function Brand({ light = false }) {
   return (
@@ -56,7 +56,7 @@ export function Footer() {
     <footer className="site-footer">
       <div className="container footer-main">
         <div className="footer-brand"><Brand light /><p>Sparkling space, happy client.</p></div>
-        <div><h4>Contact</h4><a href="tel:+2348095389606">+234 809 538 9606</a><a href="https://wa.me/2348095389606">WhatsApp us</a><a href="mailto:hello@polishersdaelite.com">hello@polishersdaelite.com</a></div>
+        <div><h4>Contact</h4><a href="tel:+2348095389606">+234 809 538 9606</a><a href="https://wa.me/2348095389606">WhatsApp us</a><a href="mailto:polishersdaelit@gmail.com">polishersdaelit@gmail.com</a></div>
         <div><h4>Visit</h4><span>Lagos, Nigeria</span><span>Lagos & nearby areas</span><span>Monday – Saturday, 8am – 6pm</span></div>
       </div>
       <div className="container footer-bottom"><span>© {new Date().getFullYear()} Polishers Da Elite Cleaning Services</span></div>
