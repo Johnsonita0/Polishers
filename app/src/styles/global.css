@@ -17,6 +17,7 @@
   --serif: Georgia, 'Times New Roman', serif;
   --heading: 'Manrope', sans-serif;
   --shadow: 0 16px 46px rgba(11, 31, 58, .08);
+  --site-header-height: 82px;
   font-optical-sizing: auto;
 }
 
@@ -37,6 +38,7 @@ h1 em, h2 em, h3 em { color: var(--aqua); font-family: var(--serif); font-weight
 .topline { height: 34px; display: flex; align-items: center; justify-content: space-between; padding-inline: max(calc((100vw - 1200px) / 2), 32px); background: var(--navy); color: #d7e5ec; font-size: 11px; letter-spacing: .03em; }
 .topline a { display: flex; gap: 8px; align-items: center; color: #fff; }
 .site-header { position: sticky; z-index: 20; top: 0; background: rgba(255,255,255,.97); border-bottom: 1px solid rgba(11,31,58,.07); backdrop-filter: blur(14px); }
+section[id] { scroll-margin-top: calc(var(--site-header-height) + 12px); }
 .header-inner { min-height: 82px; display: flex; align-items: center; justify-content: space-between; gap: 28px; }
 .brand { display: inline-flex; gap: 10px; align-items: center; color: var(--navy); flex-shrink: 0; }
 .brand-mark { width: 39px; height: 39px; display: grid; place-items: center; border-radius: 12px; color: var(--navy); background: #e3f7f7; }
@@ -143,6 +145,7 @@ h1 em, h2 em, h3 em { color: var(--aqua); font-family: var(--serif); font-weight
   .footer-main { gap: 27px; }
 }
 @media (max-width: 760px) {
+  :root { --site-header-height: 66px; }
   .container { width: min(100% - 38px, 560px); }
   .topline { height: 29px; justify-content: center; padding-inline: 12px; font-size: 9px; }.topline a { display: none; }
   .site-header { position: sticky; }.header-inner { min-height: 66px; }.brand-mark { width: 35px; height: 35px; }.brand-words b { font-size: 12px; }.brand-words small { font-size: 7px; }

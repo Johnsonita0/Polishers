@@ -183,7 +183,7 @@ export function HomePage() {
 
       <section className="section services-section" id="services">
         <div className="container">
-          <div className="home-services-heading"><SectionHeading eyebrow="WHAT WE DO" title="Our Services" /><Link to="/services">See all <ArrowRight size={15} /></Link></div>
+          <div className="home-services-heading"><SectionHeading eyebrow="WHAT WE DO" title="Our Services" /><Link to="/services#services">See all <ArrowRight size={15} /></Link></div>
           <div className="service-grid">{services.map((service) => <ServiceCard key={service.slug} service={service} iconOnly />)}</div>
         </div>
       </section>
@@ -194,13 +194,13 @@ export function HomePage() {
             <SectionHeading eyebrow="A PICTURE OF CARE" title="Spaces, polished." copy="A few recent spaces we have cared for." />
             <div className="home-gallery-actions">
               <button className="home-gallery-motion-control" type="button" title={galleryPaused ? 'Play gallery' : 'Pause gallery'} aria-label={galleryPaused ? 'Play gallery' : 'Pause gallery'} aria-pressed={galleryPaused} onClick={() => setGalleryPaused((paused) => !paused)}>{galleryPaused ? <Play size={16} /> : <Pause size={16} />}</button>
-              <Link to="/gallery" className="text-link">View all work <ArrowUpRight size={15} /></Link>
+              <Link to="/gallery#gallery" className="text-link">View all work <ArrowUpRight size={15} /></Link>
             </div>
           </div>
           <div className="home-gallery-viewport" ref={galleryViewportRef} role="region" aria-label="Recent cleaning work" onPointerDown={startGalleryDrag} onPointerMove={moveGalleryDrag} onPointerUp={endGalleryDrag} onPointerCancel={endGalleryDrag}>
             <div className="home-gallery-track" onClickCapture={handleGalleryItemClick}>
               {[0, 1].map((group) => <div className="home-gallery-group" key={group} aria-hidden={group === 1 || undefined}>
-                {gallery.map((item, index) => <Link className="home-gallery-item" to="/gallery" key={`${item.title}-${index}`} tabIndex={group === 1 ? -1 : undefined}>
+                {gallery.map((item, index) => <Link className="home-gallery-item" to="/gallery#gallery" key={`${item.title}-${index}`} tabIndex={group === 1 ? -1 : undefined}>
                   <img src={item.image} alt={group === 1 ? '' : item.title} loading="lazy" />
                   <span><small>{item.category}</small><b>{item.title}</b></span>
                 </Link>)}
@@ -287,7 +287,7 @@ export function HomePage() {
 }
 
 export function ServicesPage() {
-  return <PublicLayout><PageHero eyebrow="THOUGHTFUL BY DESIGN" title={<>A considered clean<br /><em>for every space.</em></>} copy="From the place you call home to the place you get things done — we've got it covered." image={services[1].image} /><section className="section page-services" id="services"><div className="container"><div className="service-grid">{services.map((service) => <ServiceCard key={service.slug} service={service} />)}</div><div className="services-note"><Sparkles size={20} /><span>Not sure where to start? <Link to="/contact">Tell us a little about your space <ArrowRight size={15} /></Link></span></div></div></section></PublicLayout>
+  return <PublicLayout><PageHero eyebrow="THOUGHTFUL BY DESIGN" title={<>A considered clean<br /><em>for every space.</em></>} copy="From the place you call home to the place you get things done — we've got it covered." image={services[1].image} /><section className="section page-services" id="services"><div className="container"><div className="service-grid">{services.map((service) => <ServiceCard key={service.slug} service={service} />)}</div><div className="services-note"><Sparkles size={20} /><span>Not sure where to start? <Link to="/contact#contact-section">Tell us a little about your space <ArrowRight size={15} /></Link></span></div></div></section></PublicLayout>
 }
 
 export function ServiceDetail() {
@@ -296,7 +296,7 @@ export function ServiceDetail() {
   if (!service) return <PublicLayout><NotFound /></PublicLayout>
   const Icon = serviceIcons[service.icon] || Sparkles
   return <PublicLayout>
-    <div className="container breadcrumb"><Link to="/">Home</Link><ChevronRight size={13} /><Link to="/services">Services</Link><ChevronRight size={13} /><span>{service.title}</span></div>
+    <div className="container breadcrumb"><Link to="/">Home</Link><ChevronRight size={13} /><Link to="/services#services">Services</Link><ChevronRight size={13} /><span>{service.title}</span></div>
     <section className="detail-hero"><div className="container detail-hero-grid"><div><span className="eyebrow">THE ELITE STANDARD</span><span className="detail-icon"><Icon size={22} /></span><h1>{service.title}<br /><em>done thoughtfully.</em></h1><p>{service.description}</p><Link className="button button-aqua button-large" to={`/quote?service=${service.slug}`}>Get a quote for this service <ArrowUpRight size={16} /></Link><div className="detail-benefits"><span><Check size={15} /> Fully tailored</span><span><Check size={15} /> Trusted professionals</span></div></div><div className="detail-image"><img src={service.image} alt={service.title} /><span className="image-caption"><Sparkles size={14} /> A higher standard of clean</span></div></div></section>
     <section className="section detail-includes"><div className="container detail-includes-grid"><SectionHeading eyebrow="THE LITTLE DETAILS" title={<>What a good clean<br /><em>looks like.</em></>} copy="Every space is different. Here's what you can expect from this service." /><div className="included-list">{service.includes.map((item) => <div key={item}><b>{item}</b><CheckCircle2 size={19} /></div>)}</div></div></section>
     <section className="detail-cta"><div className="container"><span className="eyebrow eyebrow-light">READY WHEN YOU ARE</span><h2>Let's make your space<br /><em>feel like yours again.</em></h2><Link className="button button-aqua" to={`/quote?service=${service.slug}`}>Request a quote <ArrowUpRight size={15} /></Link></div></section>

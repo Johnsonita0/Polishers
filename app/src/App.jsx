@@ -21,19 +21,20 @@ function ScrollToHash() {
   const location = useLocation()
 
   useEffect(() => {
-    const hash = location.hash.replace('#', '')
-    if (!hash) {
-      window.scrollTo({ top: 0, left: 0, behavior: 'instant' })
-      return
-    }
+    const frameId = window.requestAnimationFrame(() => {
+      const hash = location.hash.slice(1)
+      if (!hash) {
+        window.scrollTo({ top: 0, left: 0, behavior: 'auto' })
+        return
+      }
 
-    const target = document.getElementById(hash) || document.querySelector(`[data-section="${hash}"]`)
-    if (!target) return
+      const target = document.getElementById(hash) || document.querySelector(`[data-section="${hash}"]`)
+      if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      else window.scrollTo({ top: 0, left: 0, behavior: 'auto' })
+    })
 
-    window.setTimeout(() => {
-      target.scrollIntoView({ behavior: 'smooth', block: 'start' })
-    }, 40)
-  }, [location.pathname, location.hash])
+    return () => window.cancelAnimationFrame(frameId)
+  }, [location.key, location.pathname, location.hash])
 
   return null
 }

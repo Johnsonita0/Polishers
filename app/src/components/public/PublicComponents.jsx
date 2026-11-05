@@ -42,10 +42,10 @@ export function PublicHeader() {
 export function PublicTabs() {
   const links = [
     { label: 'Home', to: '/', Icon: Home },
-    { label: 'Services', to: '/services', Icon: Sparkles },
+    { label: 'Services', to: '/services#services', Icon: Sparkles },
     { label: 'Quote', to: '/quote', Icon: Plus },
-    { label: 'Gallery', to: '/gallery', Icon: Image },
-    { label: 'Contact', to: '/contact', Icon: Phone },
+    { label: 'Gallery', to: '/gallery#gallery', Icon: Image },
+    { label: 'Contact', to: '/contact#contact-section', Icon: Phone },
   ]
   return <nav className="public-tabs" aria-label="Mobile navigation">{links.map(({ label, to, Icon }) =>
     <Link className={label === 'Quote' ? 'tab-quote' : ''} key={label} to={to}><span><Icon size={label === 'Quote' ? 22 : 19} /></span><small>{label}</small></Link>)}</nav>
@@ -91,7 +91,7 @@ export function BeforeAfter() {
       <span className="comparison-label label-before">BEFORE</span><span className="comparison-label label-after">AFTER</span>
       <div className="comparison-handle" style={{ left: `${position}%` }}><span><ChevronLeft size={14} /><ChevronRight size={14} /></span></div>
       <input className="comparison-input" aria-label="Compare before and after" type="range" min="8" max="92" value={position} onChange={(event) => setPosition(Number(event.target.value))} />
-      <div className="comparison-caption"><span><Sparkles size={14} /> A little before & after magic</span><Link to="/gallery">See more spaces <ArrowUpRight size={14} /></Link></div>
+      <div className="comparison-caption"><span><Sparkles size={14} /> A little before & after magic</span><Link to="/gallery#gallery">See more spaces <ArrowUpRight size={14} /></Link></div>
     </div>
   )
 }
