@@ -20,7 +20,7 @@ export function Brand({ light = false }) {
 export function PublicHeader() {
   return (
     <>
-      <div className="topline"><span>Thoughtful cleaning. Exceptional results.</span><a href="tel:+2348033645277"><Phone size={13} /> +234 803 364 5277</a></div>
+      <div className="topline"><span>Thoughtful cleaning. Exceptional results.</span><a href="tel:+2348095389606"><Phone size={13} /> +234 809 538 9606</a></div>
       <header className="site-header">
         <div className="container header-inner">
           <Brand />
@@ -29,8 +29,8 @@ export function PublicHeader() {
             <Link className="nav-mobile-quote" to="/quote">Request a quote <ArrowUpRight size={15} /></Link>
           </nav>
           <div className="header-actions">
-            <a className="header-phone" href="tel:+2348033645277" aria-label="Call Polishers Da Elite"><Phone size={17} /><span>+234 803 364 5277</span></a>
-            <a className="header-whatsapp" href="https://wa.me/2348033645277" target="_blank" rel="noreferrer" aria-label="Chat with us on WhatsApp"><MessageCircle size={17} /><span>WhatsApp</span></a>
+            <a className="header-phone" href="tel:+2348095389606" aria-label="Call Polishers Da Elite"><Phone size={17} /><span>+234 809 538 9606</span></a>
+            <a className="header-whatsapp" href="https://wa.me/2348095389606" target="_blank" rel="noreferrer" aria-label="Chat with us on WhatsApp"><MessageCircle size={17} /><span>WhatsApp</span></a>
             <Link className="button button-dark button-small" to="/quote">Request a quote <ArrowUpRight size={15} /></Link>
           </div>
         </div>
@@ -56,7 +56,7 @@ export function Footer() {
     <footer className="site-footer">
       <div className="container footer-main">
         <div className="footer-brand"><Brand light /><p>Sparkling space, happy client.</p></div>
-        <div><h4>Contact</h4><a href="tel:+2348033645277">+234 803 364 5277</a><a href="https://wa.me/2348033645277">WhatsApp us</a><a href="mailto:polishersdaelit@gmail.com">polishersdaelit@gmail.com</a></div>
+        <div><h4>Contact</h4><a href="tel:+2348095389606">+234 809 538 9606</a><a href="https://wa.me/2348095389606">WhatsApp us</a><a href="mailto:polishersdaelit@gmail.com">polishersdaelit@gmail.com</a></div>
         <div><h4>Visit</h4><span>Lagos, Nigeria</span><span>Lagos & nearby areas</span><span>Monday – Saturday, 8am – 6pm</span></div>
       </div>
       <div className="container footer-bottom"><span>© {new Date().getFullYear()} Polishers Da Elite Cleaning Services</span></div>
@@ -65,7 +65,7 @@ export function Footer() {
 }
 
 export function PublicLayout({ children }) {
-  return <><PublicHeader /><main>{children}</main><Footer /><PublicTabs /><a className="whatsapp-float" href="https://wa.me/2348033645277" target="_blank" rel="noreferrer" aria-label="Chat with us on WhatsApp"><MessageCircle size={22} /></a></>
+  return <><PublicHeader /><main>{children}</main><Footer /><PublicTabs /><a className="whatsapp-float" href="https://wa.me/2348095389606" target="_blank" rel="noreferrer" aria-label="Chat with us on WhatsApp"><MessageCircle size={22} /></a></>
 }
 
 export function SectionHeading({ eyebrow, title, copy, light = false, centered = false }) {
