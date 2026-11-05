@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { ArrowDownRight, ArrowUpRight, CalendarDays, CheckCircle2, Clock3, FileText, Plus, Sparkles, Users } from 'lucide-react'
 import { Link } from 'react-router-dom'
-import Badge from '../../components/ui/Badge'
-import Card from '../../components/ui/Card'
+import Badge from '../../components/ui/Badge.jsx'
+import Card from '../../components/ui/Card.jsx'
 import { supabase, supabaseConfigured } from '../../supabase'
 
 const fallbackRequests = [

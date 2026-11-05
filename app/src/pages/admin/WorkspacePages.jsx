@@ -1,6 +1,6 @@
 import { ArrowUpRight, Image, MessageCircle, Settings, Sparkles, Star, Users } from 'lucide-react'
 import { Link } from 'react-router-dom'
-import Card from '../../components/ui/Card'
+import Card from '../../components/ui/Card.jsx'
 
 const modules = [
   { title: 'Hero', description: 'Headline, supporting text and main image', icon: Sparkles, state: 'Content editor' },

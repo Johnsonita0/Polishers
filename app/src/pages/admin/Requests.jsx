@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { ArrowUpRight, Download, Search } from 'lucide-react'
-import Badge from '../../components/ui/Badge'
-import Card from '../../components/ui/Card'
+import Badge from '../../components/ui/Badge.jsx'
+import Card from '../../components/ui/Card.jsx'
 import { supabase, supabaseConfigured } from '../../supabase'
 
 const filters = ['all', 'new', 'contacted', 'quoted', 'scheduled', 'completed']
