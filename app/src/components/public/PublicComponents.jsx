@@ -5,9 +5,11 @@ import {
 } from 'lucide-react'
 import { Link, NavLink } from 'react-router-dom'
 import { services } from '../../data'
+import { businessWhatsAppPhone, whatsappHref } from '../../utils/whatsapp'
 
 const serviceIcons = { Home, Building2, Factory, HardHat }
 const navItems = [['Services', '/services#services'], ['Our work', '/gallery#gallery'], ['About us', '/about#about'], ['Contact', '/contact#contact-section']]
+const generalWhatsAppMessage = 'Hi Polishers Da Elite, I would like to know more about your cleaning services. Could you help me get started?'
 
 export function Brand({ light = false }) {
   return (
@@ -30,7 +32,7 @@ export function PublicHeader() {
           </nav>
           <div className="header-actions">
             <a className="header-phone" href="tel:+2348095389606" aria-label="Call Polishers Da Elite"><Phone size={17} /><span>+234 809 538 9606</span></a>
-            <a className="header-whatsapp" href="https://wa.me/2348095389606" target="_blank" rel="noreferrer" aria-label="Chat with us on WhatsApp"><MessageCircle size={17} /><span>WhatsApp</span></a>
+            <a className="header-whatsapp" href={whatsappHref(businessWhatsAppPhone, generalWhatsAppMessage)} target="_blank" rel="noreferrer" aria-label="Chat with us on WhatsApp"><MessageCircle size={17} /><span>WhatsApp</span></a>
             <Link className="button button-dark button-small" to="/quote">Request a quote <ArrowUpRight size={15} /></Link>
           </div>
         </div>
@@ -56,7 +58,7 @@ export function Footer() {
     <footer className="site-footer">
       <div className="container footer-main">
         <div className="footer-brand"><Brand light /><p>Sparkling space, happy client.</p></div>
-        <div><h4>Contact</h4><a href="tel:+2348095389606">+234 809 538 9606</a><a href="https://wa.me/2348095389606">WhatsApp us</a><a href="mailto:polishersdaelit@gmail.com">polishersdaelit@gmail.com</a></div>
+        <div><h4>Contact</h4><a href="tel:+2348095389606">+234 809 538 9606</a><a href={whatsappHref(businessWhatsAppPhone, 'Hi Polishers Da Elite, I would like to request a cleaning quote. Please let me know what details you need.')} target="_blank" rel="noreferrer">WhatsApp us</a><a href="mailto:polishersdaelit@gmail.com">polishersdaelit@gmail.com</a></div>
         <div><h4>Visit</h4><span>Lagos, Nigeria</span><span>Lagos & nearby areas</span><span>Monday – Saturday, 8am – 6pm</span></div>
       </div>
       <div className="container footer-bottom"><span>© {new Date().getFullYear()} Polishers Da Elite Cleaning Services</span></div>
@@ -65,7 +67,7 @@ export function Footer() {
 }
 
 export function PublicLayout({ children }) {
-  return <><PublicHeader /><main>{children}</main><Footer /><PublicTabs /><a className="whatsapp-float" href="https://wa.me/2348095389606" target="_blank" rel="noreferrer" aria-label="Chat with us on WhatsApp"><MessageCircle size={22} /></a></>
+  return <><PublicHeader /><main>{children}</main><Footer /><PublicTabs /><a className="whatsapp-float" href={whatsappHref(businessWhatsAppPhone, generalWhatsAppMessage)} target="_blank" rel="noreferrer" aria-label="Chat with us on WhatsApp"><MessageCircle size={22} /></a></>
 }
 
 export function SectionHeading({ eyebrow, title, copy, light = false, centered = false }) {

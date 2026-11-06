@@ -6,16 +6,10 @@ import Card from '../../components/ui/Card.jsx'
 import { useToast } from '../../components/ui/ToastProvider'
 import { supabase, supabaseConfigured } from '../../supabase'
 import { friendlyErrorMessage } from '../../utils/friendlyError'
+import { whatsappHref } from '../../utils/whatsapp'
 
 const filters = ['all', 'new', 'contacted', 'quoted', 'scheduled', 'in_progress', 'completed', 'cancelled', 'lost']
 const tones = { new: 'aqua', contacted: 'blue', quoted: 'amber', scheduled: 'purple', in_progress: 'orange', completed: 'green', cancelled: 'neutral', lost: 'red' }
-
-function whatsappHref(phone) {
-  const digits = String(phone || '').replace(/\D/g, '')
-  if (!digits) return ''
-  const international = digits.startsWith('0') ? `234${digits.slice(1)}` : digits
-  return `https://wa.me/${international}`
-}
 
 export default function Requests() {
   const [searchParams] = useSearchParams()
@@ -139,5 +133,8 @@ function RequestTableRows({ request, expanded, onToggle, updating, onMarkContact
 }
 
 function RequestDetail({ request, updating, onMarkContacted }) {
-  return <div className="request-detail-panel"><dl><div><dt>Phone</dt><dd>{request.phone || 'Not provided'}</dd></div><div><dt>Email</dt><dd>{request.email || 'Not provided'}</dd></div><div><dt>Service</dt><dd>{request.service_type}</dd></div><div><dt>Area</dt><dd>{request.address || 'Not provided'}</dd></div><div><dt>Preferred date</dt><dd>{request.preferred_date || 'Flexible'}</dd></div><div><dt>Received</dt><dd>{new Date(request.created_at).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' })}</dd></div>{request.message && <div className="request-message-detail"><dt>Client message</dt><dd>{request.message}</dd></div>}</dl><div className="request-mobile-actions">{whatsappHref(request.phone) ? <a className="request-whatsapp-button" href={whatsappHref(request.phone)} target="_blank" rel="noreferrer"><MessageCircle size={15} /> Contact on WhatsApp</a> : <span className="request-no-phone">No phone number supplied</span>}<button className="request-contacted-button" type="button" disabled={request.status === 'contacted' || updating} onClick={onMarkContacted}>{request.status === 'contacted' ? <><Check size={14} /> Contacted</> : updating ? 'Saving…' : 'Mark contacted'}</button></div></div>
+  const service = request.service_type?.replaceAll('_', ' ') || 'cleaning service'
+  const message = [`Hi ${request.full_name || 'there'}, this is the Polishers Da Elite team.`, `We received your request ${request.reference} for ${service}${request.address ? ` in ${request.address}` : ''}${request.preferred_date ? `, with a preferred date of ${request.preferred_date}` : ''}.`, 'Is this a good time to discuss how we can help?'].join(' ')
+  const contactHref = whatsappHref(request.phone, message)
+  return <div className="request-detail-panel"><dl><div><dt>Phone</dt><dd>{request.phone || 'Not provided'}</dd></div><div><dt>Email</dt><dd>{request.email || 'Not provided'}</dd></div><div><dt>Service</dt><dd>{request.service_type}</dd></div><div><dt>Area</dt><dd>{request.address || 'Not provided'}</dd></div><div><dt>Preferred date</dt><dd>{request.preferred_date || 'Flexible'}</dd></div><div><dt>Received</dt><dd>{new Date(request.created_at).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' })}</dd></div>{request.message && <div className="request-message-detail"><dt>Client message</dt><dd>{request.message}</dd></div>}</dl><div className="request-mobile-actions">{contactHref ? <a className="request-whatsapp-button" href={contactHref} target="_blank" rel="noreferrer"><MessageCircle size={15} /> Message {request.full_name?.split(' ')[0] || 'client'}</a> : <span className="request-no-phone">No phone number supplied</span>}<button className="request-contacted-button" type="button" disabled={request.status === 'contacted' || updating} onClick={onMarkContacted}>{request.status === 'contacted' ? <><Check size={14} /> Contacted</> : updating ? 'Saving…' : 'Mark contacted'}</button></div></div>
 }

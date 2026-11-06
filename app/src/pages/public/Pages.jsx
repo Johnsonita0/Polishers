@@ -13,6 +13,7 @@ import SearchSelect from '../../components/ui/SearchSelect'
 import { usePublishedContent, usePublishedHeroMedia } from '../../components/ui/SiteContentProvider'
 import { useToast } from '../../components/ui/ToastProvider'
 import { friendlyErrorMessage } from '../../utils/friendlyError'
+import { businessWhatsAppPhone, whatsappHref } from '../../utils/whatsapp'
 import {
   PageHero, PublicLayout, SectionHeading, ServiceCard,
 } from '../../components/public/PublicComponents'
@@ -181,7 +182,7 @@ export function HomePage() {
             <p>{heroContent.body}</p>
             <div className="hero-buttons">
               <Link to="/quote" className="button button-aqua button-large">Get a Free Quote</Link>
-              <a className="button button-glass button-large" href="https://wa.me/2348095389606" target="_blank" rel="noreferrer">WhatsApp Us</a>
+              <a className="button button-glass button-large" href={whatsappHref(businessWhatsAppPhone, 'Hi Polishers Da Elite, I would like a cleaning quote. Could you help me get started?')} target="_blank" rel="noreferrer">WhatsApp Us</a>
             </div>
             <div className="hero-stats">
               <div><b>JOBS DONE</b><span>Jobs completed</span></div>
@@ -364,7 +365,7 @@ export function ContactPage() {
     }
   }
   return <PublicLayout><PageHero eyebrow="WE'RE RIGHT HERE" title={<>A little hello<br /><em>goes a long way.</em></>} copy="Questions, plans, a space that needs a fresh start? We'd love to hear from you." image={services[0].image} />
-    <section className="section contact-section" id="contact-section"><div className="container contact-grid"><div><SectionHeading eyebrow="TALK TO A HUMAN" title={<>Let's make it<br /><em>easy to get in touch.</em></>} /><div className="contact-details"><a href="tel:+2348095389606"><span><Phone size={19} /></span><div><small>GIVE US A CALL</small><b>+234 809 538 9606</b></div><ArrowUpRight size={16} /></a><a href="mailto:polishersdaelit@gmail.com"><span><Mail size={19} /></span><div><small>DROP US A NOTE</small><b>polishersdaelit@gmail.com</b></div><ArrowUpRight size={16} /></a><a href="https://wa.me/2348095389606"><span><MessageCircle size={19} /></span><div><small>WE'RE ON WHATSAPP</small><b>Let's have a chat</b></div><ArrowUpRight size={16} /></a><div className="contact-hours"><MapPin size={18} /><div><small>WHERE WE WORK</small><b>Lagos & nearby areas</b><small>Monday – Saturday, 8am – 6pm</small></div></div></div></div><div className="contact-form-card"><span className="eyebrow">SEND A QUICK MESSAGE</span><h3>What's on your mind?</h3>{sent ? <div className="form-success"><CheckCircle2 size={32} /><b>Thanks for reaching out.</b><p>Our team will be in touch soon.</p></div> : <form onSubmit={submit}><label>Your name<input name="name" required placeholder="e.g. Amara Okafor" /></label><div className="field-row"><label>Phone number<input type="tel" name="phone" required placeholder="+234" /></label><label>Email <span>(optional)</span><input type="email" name="email" placeholder="you@example.com" /></label></div><label>Your message<textarea name="message" rows="4" required placeholder="Tell us a little about what you need..." /></label>{error && <p className="form-error">{error}</p>}<button className="button button-dark button-large" type="submit">Send your message <ArrowUpRight size={16} /></button></form>}</div></div></section>
+    <section className="section contact-section" id="contact-section"><div className="container contact-grid"><div><SectionHeading eyebrow="TALK TO A HUMAN" title={<>Let's make it<br /><em>easy to get in touch.</em></>} /><div className="contact-details"><a href="tel:+2348095389606"><span><Phone size={19} /></span><div><small>GIVE US A CALL</small><b>+234 809 538 9606</b></div><ArrowUpRight size={16} /></a><a href="mailto:polishersdaelit@gmail.com"><span><Mail size={19} /></span><div><small>DROP US A NOTE</small><b>polishersdaelit@gmail.com</b></div><ArrowUpRight size={16} /></a><a href={whatsappHref(businessWhatsAppPhone, 'Hi Polishers Da Elite, I have a question about your cleaning services. Could someone help me?')} target="_blank" rel="noreferrer"><span><MessageCircle size={19} /></span><div><small>WE'RE ON WHATSAPP</small><b>Let's have a chat</b></div><ArrowUpRight size={16} /></a><div className="contact-hours"><MapPin size={18} /><div><small>WHERE WE WORK</small><b>Lagos & nearby areas</b><small>Monday – Saturday, 8am – 6pm</small></div></div></div></div><div className="contact-form-card"><span className="eyebrow">SEND A QUICK MESSAGE</span><h3>What's on your mind?</h3>{sent ? <div className="form-success"><CheckCircle2 size={32} /><b>Thanks for reaching out.</b><p>Our team will be in touch soon.</p></div> : <form onSubmit={submit}><label>Your name<input name="name" required placeholder="e.g. Amara Okafor" /></label><div className="field-row"><label>Phone number<input type="tel" name="phone" required placeholder="+234" /></label><label>Email <span>(optional)</span><input type="email" name="email" placeholder="you@example.com" /></label></div><label>Your message<textarea name="message" rows="4" required placeholder="Tell us a little about what you need..." /></label>{error && <p className="form-error">{error}</p>}<button className="button button-dark button-large" type="submit">Send your message <ArrowUpRight size={16} /></button></form>}</div></div></section>
   </PublicLayout>
 }
 
@@ -434,7 +435,7 @@ export function QuotePage() {
       const { photo, ...values } = form
       const result = await saveRequest({ ...values, photo_urls: photoPath ? [photoPath] : [] })
       showToast({ tone: 'success', title: 'Quote request sent', message: 'We received your request and will be in touch within 24 hours.' })
-      navigate('/quote/success', { state: { reference: result.reference || `PDE-${String(Date.now()).slice(-6)}` } })
+      navigate('/quote/success', { state: { reference: result.reference || `PDE-${String(Date.now()).slice(-6)}`, full_name: values.full_name, service: serviceLabel, address: values.address, preferred_date: values.preferred_date } })
     } catch (issue) {
       const message = friendlyErrorMessage(issue, 'We could not submit your request. Check your connection and try again.')
       setError(message)
@@ -460,7 +461,9 @@ export function QuotePage() {
 
 export function QuoteSuccess() {
   const location = useLocation()
-  return <PublicLayout><section className="success-page"><div className="success-card"><span className="success-icon"><CheckCircle2 size={37} /></span><span className="eyebrow">REQUEST RECEIVED</span><h1>Well, this is a<br /><em>good start.</em></h1><p>Your space is on our mind already. Our team will be in touch within 24 hours to talk through the details.</p><div className="reference-number"><small>YOUR REFERENCE</small><b>{location.state?.reference || 'PDE-000000'}</b></div><a className="button button-aqua button-large" href="https://wa.me/2348095389606" target="_blank" rel="noreferrer"><MessageCircle size={17} /> Chat with us on WhatsApp</a><Link to="/" className="success-home">Back to home <ArrowRight size={14} /></Link></div></section></PublicLayout>
+  const request = location.state || {}
+  const message = [`Hi Polishers Da Elite, I just submitted a quote request.`, request.reference && `Reference: ${request.reference}`, request.full_name && `Name: ${request.full_name}`, request.service && `Service: ${request.service}`, request.address && `Area: ${request.address}`, request.preferred_date && `Preferred date: ${request.preferred_date}`, 'Could you please help me with the next steps?'].filter(Boolean).join('\n')
+  return <PublicLayout><section className="success-page"><div className="success-card"><span className="success-icon"><CheckCircle2 size={37} /></span><span className="eyebrow">REQUEST RECEIVED</span><h1>Well, this is a<br /><em>good start.</em></h1><p>Your space is on our mind already. Our team will be in touch within 24 hours to talk through the details.</p><div className="reference-number"><small>YOUR REFERENCE</small><b>{request.reference || 'PDE-000000'}</b></div><a className="button button-aqua button-large" href={whatsappHref(businessWhatsAppPhone, message)} target="_blank" rel="noreferrer"><MessageCircle size={17} /> Chat with us on WhatsApp</a><Link to="/" className="success-home">Back to home <ArrowRight size={14} /></Link></div></section></PublicLayout>
 }
 
 export function NotFound() {
