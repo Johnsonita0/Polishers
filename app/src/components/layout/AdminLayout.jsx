@@ -131,7 +131,7 @@ export default function AdminLayout() {
     <div className="admin-shell">
       {menuOpen && <button className="admin-backdrop" aria-label="Close menu" onClick={() => setMenuOpen(false)} />}
       <aside className={`admin-sidebar ${menuOpen ? 'admin-sidebar-open' : ''}`}>
-        <a className="admin-brand" href="/"><span className="brand-mark">✦</span><span><b>POLISHERS</b><small>DA ELITE · ADMIN</small></span></a>
+        <Link className="admin-brand" to="/"><img src={`${import.meta.env.BASE_URL}Polishers%20DA%20Elite%20Logo.png`} alt="Polishers Da Elite" /></Link>
         <div className="admin-nav-label">WORKSPACE</div>
         <nav>{links.map(({ label, path, icon: Icon, end }) => <NavLink key={path} to={path} end={end} onClick={() => setMenuOpen(false)}><Icon size={18} /><span>{label}</span></NavLink>)}</nav>
         <div className="admin-sidebar-bottom"><div className="admin-sidebar-help"><span>?</span><div><b>Need a hand?</b><small>Contact your super admin</small></div></div><button onClick={signOut}><LogOut size={17} /> Sign out</button></div>

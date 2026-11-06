@@ -370,6 +370,12 @@
 .newsletter-preview > footer { display: grid; gap: 5px; padding: 13px 16px; color: #dce7ec; background: #0b295b; font-size: 8px; }
 .newsletter-preview > footer b { color: white; font-size: 9px; }
 .newsletter-preview > footer small { color: #b8c9d2; }
+
+.admin-brand { width: 100%; padding-bottom: 18px; }
+.admin-brand img { display: block; width: min(100%, 172px); height: auto; object-fit: contain; }
+.login-panel-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.login-brand { display: block; flex: 0 1 175px; min-width: 0; }
+.login-brand img { display: block; width: 100%; max-width: 175px; height: auto; border-radius: 3px; }
 @media(max-width:1100px) {
   .newsletter-editor-layout { grid-template-columns: minmax(0,1fr); }
   .newsletter-preview-card { max-width: 680px; }
