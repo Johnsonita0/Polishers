@@ -5,6 +5,7 @@ import { useToast } from '../../components/ui/ToastProvider'
 import { supabase, supabaseConfigured } from '../../supabase'
 import { friendlyErrorMessage } from '../../utils/friendlyError'
 import '../../styles/newsletter-scheduler.css'
+import ScheduleDateTimePicker from '../../components/admin/ScheduleDateTimePicker.jsx'
 
 const emptyCampaign = {
   status: 'draft',
@@ -30,12 +31,6 @@ function toLocalDateTime(value) {
   if (!value) return ''
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return ''
-  date.setMinutes(date.getMinutes() - date.getTimezoneOffset())
-  return date.toISOString().slice(0, 16)
-}
-
-function minimumScheduleDateTime() {
-  const date = new Date(Date.now() + 5 * 60 * 1000)
   date.setMinutes(date.getMinutes() - date.getTimezoneOffset())
   return date.toISOString().slice(0, 16)
 }
@@ -297,7 +292,7 @@ export default function NewsletterAdmin() {
     {draft && ['draft', 'scheduled'].includes(draft.status) && <div className="newsletter-schedule-bar">
       {draft.status === 'draft' ? <>
         <label className="newsletter-field">Schedule delivery
-          <input type="datetime-local" min={minimumScheduleDateTime()} value={scheduleAt} onChange={(event) => setScheduleAt(event.target.value)} disabled={!draft.id || sending} />
+          <ScheduleDateTimePicker value={scheduleAt} onChange={setScheduleAt} disabled={sending} />
           <small>{draft.id ? `Time shown in ${Intl.DateTimeFormat().resolvedOptions().timeZone || 'your local time zone'}.` : 'Save this draft before scheduling delivery.'}</small>
         </label>
         <button className="button button-aqua" type="button" onClick={scheduleCampaign} disabled={!draft.id || !scheduleAt || saving || sending || !subscriberCount}>{sending ? 'Scheduling…' : <><CalendarDays size={15} /> Schedule delivery</>}</button>
