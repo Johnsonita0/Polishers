@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import {
-  Bell, ChevronDown, FileText, LayoutDashboard, LogOut, Menu, Settings, Users, X,
+  Bell, ChevronDown, FileText, LayoutDashboard, LogOut, Mail, Menu, Settings, Users, X,
 } from 'lucide-react'
 import { useToast } from '../ui/ToastProvider'
 import { supabase } from '../../supabase'
@@ -10,6 +10,7 @@ import { friendlyErrorMessage } from '../../utils/friendlyError'
 const links = [
   { label: 'Overview', path: '/admin', icon: LayoutDashboard, end: true },
   { label: 'Requests', path: '/admin/requests', icon: FileText },
+  { label: 'Newsletter', path: '/admin/newsletter', icon: Mail },
   { label: 'Content', path: '/admin/content', icon: Settings },
   { label: 'Team', path: '/admin/team', icon: Users },
 ]

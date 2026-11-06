@@ -5,6 +5,7 @@ import Dashboard from './pages/admin/Dashboard'
 import AdminLogin from './pages/admin/AdminLogin'
 import Requests from './pages/admin/Requests'
 import Notifications from './pages/admin/Notifications'
+import NewsletterAdmin from './pages/admin/NewsletterAdmin'
 import { ContentPage, TeamPage } from './pages/admin/WorkspacePages'
 import {
   AboutPage,
@@ -12,10 +13,12 @@ import {
   GalleryPage,
   HomePage,
   NotFound,
+  PrivacyPolicyPage,
   QuotePage,
   QuoteSuccess,
   ServiceDetail,
   ServicesPage,
+  TermsPage,
 } from './pages/public/Pages'
 
 function ScrollToHash() {
@@ -47,6 +50,8 @@ export default function App() {
         <Route path="/gallery" element={<GalleryPage />} />
         <Route path="/about" element={<AboutPage />} />
         <Route path="/contact" element={<ContactPage />} />
+        <Route path="/privacy" element={<PrivacyPolicyPage />} />
+        <Route path="/terms" element={<TermsPage />} />
         <Route path="/quote" element={<QuotePage />} />
         <Route path="/quote/success" element={<QuoteSuccess />} />
         <Route path="/admin/login" element={<AdminLogin />} />
@@ -54,6 +59,7 @@ export default function App() {
           <Route index element={<Dashboard />} />
           <Route path="requests" element={<Requests />} />
           <Route path="notifications" element={<Notifications />} />
+          <Route path="newsletter" element={<NewsletterAdmin />} />
           <Route path="content" element={<ContentPage />} />
           <Route path="team" element={<TeamPage />} />
           <Route path="settings" element={<Navigate to="/admin" replace />} />

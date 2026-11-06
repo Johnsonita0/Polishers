@@ -77,6 +77,24 @@ create table if not exists public.notification_reads (
   primary key (notification_id, user_id)
 );
 
+create table if not exists public.newsletter_campaigns (
+  id uuid primary key default gen_random_uuid(),
+  title text not null,
+  subject text not null,
+  preheader text not null default '',
+  body text not null default '',
+  image_url text,
+  cta_label text not null default '',
+  cta_url text not null default '',
+  status text not null default 'draft' check (status in ('draft', 'sending', 'sent')),
+  resend_broadcast_id text,
+  created_by uuid references public.profiles (id) on delete set null,
+  updated_by uuid references public.profiles (id) on delete set null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  sent_at timestamptz
+);
+
 insert into public.site_content_sections (section, is_managed)
 values
   ('hero', false),
@@ -95,6 +113,8 @@ create index if not exists notifications_created_at_idx
 create unique index if not exists notifications_request_created_unique
   on public.notifications (request_id)
   where event_type = 'request_created' and request_id is not null;
+create index if not exists newsletter_campaigns_created_at_idx
+  on public.newsletter_campaigns (created_at desc);
 
 create or replace function public.set_updated_at()
 returns trigger
@@ -125,6 +145,11 @@ create trigger site_content_sections_set_updated_at
 drop trigger if exists site_content_set_updated_at on public.site_content;
 create trigger site_content_set_updated_at
   before update on public.site_content
+  for each row execute function public.set_updated_at();
+
+drop trigger if exists newsletter_campaigns_set_updated_at on public.newsletter_campaigns;
+create trigger newsletter_campaigns_set_updated_at
+  before update on public.newsletter_campaigns
   for each row execute function public.set_updated_at();
 
 create or replace function public.capture_request_notification()
@@ -219,6 +244,7 @@ alter table public.site_content_sections enable row level security;
 alter table public.site_content enable row level security;
 alter table public.notifications enable row level security;
 alter table public.notification_reads enable row level security;
+alter table public.newsletter_campaigns enable row level security;
 
 drop policy if exists profiles_select_own_or_admin on public.profiles;
 create policy profiles_select_own_or_admin
@@ -293,6 +319,14 @@ create policy notification_reads_admin_delete
   to authenticated
   using (user_id = (select auth.uid()) and (select public.is_active_admin()));
 
+drop policy if exists newsletter_campaigns_admin_access on public.newsletter_campaigns;
+create policy newsletter_campaigns_admin_access
+  on public.newsletter_campaigns
+  for all
+  to authenticated
+  using ((select public.is_active_admin()))
+  with check ((select public.is_active_admin()));
+
 grant usage on schema public to anon, authenticated;
 grant select on public.profiles to authenticated;
 grant select, insert, update, delete on public.service_requests to authenticated;
@@ -302,6 +336,7 @@ grant select on public.site_content to anon, authenticated;
 grant insert, update, delete on public.site_content to authenticated;
 grant select on public.notifications to authenticated;
 grant select, insert, delete on public.notification_reads to authenticated;
+grant select, insert, update, delete on public.newsletter_campaigns to authenticated;
 grant usage, select on sequence public.service_request_reference_seq to authenticated;
 grant execute on function public.is_active_admin() to authenticated;
 revoke all on function public.handle_new_auth_user() from public, anon, authenticated;
@@ -415,6 +450,109 @@ on conflict (id) do update set
   public = excluded.public,
   file_size_limit = excluded.file_size_limit,
   allowed_mime_types = excluded.allowed_mime_types;
+
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values (
+  'newsletter-media',
+  'newsletter-media',
+  true,
+  10485760,
+  array['image/jpeg', 'image/png', 'image/webp']
+)
+on conflict (id) do update set
+  public = excluded.public,
+  file_size_limit = excluded.file_size_limit,
+  allowed_mime_types = excluded.allowed_mime_types;
+
+drop policy if exists newsletter_media_public_read on storage.objects;
+create policy newsletter_media_public_read
+  on storage.objects
+  for select
+  to anon, authenticated
+  using (bucket_id = 'newsletter-media' and (storage.foldername(name))[1] = 'newsletter');
+
+drop policy if exists newsletter_media_admin_insert on storage.objects;
+create policy newsletter_media_admin_insert
+  on storage.objects
+  for insert
+  to authenticated
+  with check (bucket_id = 'newsletter-media' and (storage.foldername(name))[1] = 'newsletter' and (select public.is_active_admin()));
+
+drop policy if exists newsletter_media_admin_update on storage.objects;
+create policy newsletter_media_admin_update
+  on storage.objects
+  for update
+  to authenticated
+  using (bucket_id = 'newsletter-media' and (storage.foldername(name))[1] = 'newsletter' and (select public.is_active_admin()))
+  with check (bucket_id = 'newsletter-media' and (storage.foldername(name))[1] = 'newsletter' and (select public.is_active_admin()));
+
+drop policy if exists newsletter_media_admin_delete on storage.objects;
+create policy newsletter_media_admin_delete
+  on storage.objects
+  for delete
+  to authenticated
+  using (bucket_id = 'newsletter-media' and (storage.foldername(name))[1] = 'newsletter' and (select public.is_active_admin()));
+
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values (
+  'newsletter-media',
+  'newsletter-media',
+  true,
+  10485760,
+  array['image/jpeg', 'image/png', 'image/webp']
+)
+on conflict (id) do update set
+  public = excluded.public,
+  file_size_limit = excluded.file_size_limit,
+  allowed_mime_types = excluded.allowed_mime_types;
+
+drop policy if exists newsletter_media_public_read on storage.objects;
+create policy newsletter_media_public_read
+  on storage.objects
+  for select
+  to anon, authenticated
+  using (
+    bucket_id = 'newsletter-media'
+    and (storage.foldername(name))[1] = 'newsletter'
+  );
+
+drop policy if exists newsletter_media_admin_insert on storage.objects;
+create policy newsletter_media_admin_insert
+  on storage.objects
+  for insert
+  to authenticated
+  with check (
+    bucket_id = 'newsletter-media'
+    and (storage.foldername(name))[1] = 'newsletter'
+    and (select public.is_active_admin())
+  );
+
+drop policy if exists newsletter_media_admin_update on storage.objects;
+create policy newsletter_media_admin_update
+  on storage.objects
+  for update
+  to authenticated
+  using (
+    bucket_id = 'newsletter-media'
+    and (storage.foldername(name))[1] = 'newsletter'
+    and (select public.is_active_admin())
+  )
+  with check (
+    bucket_id = 'newsletter-media'
+    and (storage.foldername(name))[1] = 'newsletter'
+    and (select public.is_active_admin())
+  );
+
+drop policy if exists newsletter_media_admin_delete on storage.objects;
+create policy newsletter_media_admin_delete
+  on storage.objects
+  for delete
+  to authenticated
+  using (
+    bucket_id = 'newsletter-media'
+    and (storage.foldername(name))[1] = 'newsletter'
+    and (select public.is_active_admin())
+  );
 
 drop policy if exists site_media_public_read on storage.objects;
 create policy site_media_public_read

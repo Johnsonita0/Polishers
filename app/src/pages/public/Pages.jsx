@@ -469,3 +469,32 @@ export function QuoteSuccess() {
 export function NotFound() {
   return <section className="not-found"><span className="eyebrow">A LITTLE DETOUR</span><h1>This page seems<br /><em>to need a tidy-up.</em></h1><Link to="/" className="button button-dark">Back to home <ArrowUpRight size={15} /></Link></section>
 }
+
+function PolicyPage({ eyebrow, title, description, children }) {
+  return <PublicLayout><PageHero eyebrow={eyebrow} title={title} copy={description} image={services[0].image} /><section className="policy-section"><div className="container policy-content">{children}</div></section></PublicLayout>
+}
+
+export function PrivacyPolicyPage() {
+  return <PolicyPage eyebrow="YOUR INFORMATION, RESPECTED" title="Privacy policy" description="How Polishers Da Elite collects, uses, and protects information shared through this website.">
+    <p className="policy-updated">Last updated: 6 November 2026</p>
+    <h2>Information we collect</h2><p>When you request a quote or contact us, we collect the details you provide, such as your name, phone number, email address, service and property details, preferred date, message, and any photos you choose to upload. If you subscribe to the newsletter, we collect your email address and subscription status.</p>
+    <h2>How we use your information</h2><ul><li>To respond to enquiries, prepare quotes, and provide requested cleaning services.</li><li>To send newsletter updates when you subscribe. You can unsubscribe from any newsletter email.</li><li>To operate, secure, and improve this website and our customer service.</li></ul>
+    <h2>Service providers and storage</h2><p>We use Supabase to securely store service requests, uploaded request photos, and website content. Newsletter subscribers and campaign delivery are managed through Resend. These providers process information only to provide their services to us and under their applicable privacy and security terms. Request photos are stored privately and are only available to authorized administrators.</p>
+    <h2>Retention and your choices</h2><p>We keep enquiry and service records for as long as needed to respond, provide services, and meet legitimate record-keeping requirements. Newsletter details are retained until you unsubscribe or ask us to remove them. You may request access, correction, or deletion of your personal information, or withdraw newsletter consent, by contacting us.</p>
+    <h2>Browser storage</h2><p>We use session storage in your browser to remember that you have dismissed the newsletter signup prompt during the current browsing session. This setting does not identify you or track activity across other websites.</p>
+    <h2>Security and sharing</h2><p>We apply access controls to administrative records and do not sell personal information. No online storage or transmission method can be guaranteed completely secure, but we work to protect information from unauthorized access and use.</p>
+    <h2>Contact</h2><p>For privacy questions or requests, email <a href="mailto:polishersdaelit@gmail.com">polishersdaelit@gmail.com</a> or call <a href="tel:+2348095389606">+234 809 538 9606</a>.</p>
+  </PolicyPage>
+}
+
+export function TermsPage() {
+  return <PolicyPage eyebrow="CLEAR EXPECTATIONS" title="Website & system policy" description="The terms and acceptable-use expectations for this website, quote requests, and email updates.">
+    <p className="policy-updated">Last updated: 6 November 2026</p>
+    <h2>Quote requests and bookings</h2><p>Submitting a quote form or contacting us is a request for information, not a confirmed booking or a final price. We will review the details, confirm service availability, and agree the scope, price, and schedule with you before work is booked.</p>
+    <h2>Accurate information</h2><p>Please provide accurate contact and property information. You confirm that you have permission to share any photos you upload and that they do not contain material you are not authorized to provide.</p>
+    <h2>Newsletter updates</h2><p>Newsletter subscription is optional. We use your email to send occasional company and cleaning-service updates. You can unsubscribe using the link in any newsletter email.</p>
+    <h2>Website content</h2><p>Website copy, photographs, logos, and other materials belong to Polishers Da Elite or their respective rights holders. Please do not reproduce or use them commercially without permission. We may update website content and these terms as our services change.</p>
+    <h2>Service availability</h2><p>Services depend on location, availability, and the details agreed with you. Any booking changes or cancellations should be discussed directly with our team.</p>
+    <h2>Contact</h2><p>Questions about these terms? Contact <a href="mailto:polishersdaelit@gmail.com">polishersdaelit@gmail.com</a> or call <a href="tel:+2348095389606">+234 809 538 9606</a>.</p>
+  </PolicyPage>
+}

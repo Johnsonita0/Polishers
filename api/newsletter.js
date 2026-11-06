@@ -1,0 +1,116 @@
+const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+function escapeHtml(value) {
+  return String(value || '').replace(/[&<>"']/g, (character) => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;',
+  })[character])
+}
+
+function socialLinks() {
+  return [
+    ['Instagram', process.env.VITE_INSTAGRAM_URL, 'IG'],
+    ['Facebook', process.env.VITE_FACEBOOK_URL, 'f'],
+    ['LinkedIn', process.env.VITE_LINKEDIN_URL, 'in'],
+  ].map(([name, url, icon]) => {
+    const tag = url ? 'a' : 'span'
+    const href = url ? ` href="${escapeHtml(url)}"` : ''
+    return `<${tag}${href} aria-label="${name}" style="display:inline-block;width:28px;height:28px;margin-right:8px;border:1px solid #71879a;border-radius:50%;color:#ffffff;text-align:center;text-decoration:none;font-family:Arial,sans-serif;font-size:11px;font-weight:bold;line-height:28px">${icon}</${tag}>`
+  }).join('')
+}
+
+function emailTemplate({ title, intro, detail, siteUrl, logoUrl, socialHtml }) {
+  return `<!doctype html><html><body style="margin:0;padding:0;background:#f3f6f7;font-family:Arial,Helvetica,sans-serif;color:#17314a"><div style="display:none;max-height:0;overflow:hidden">${escapeHtml(intro)}</div><table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f3f6f7;padding:32px 12px"><tr><td align="center"><table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:600px;background:#ffffff;border:1px solid #e3eaed;border-radius:8px;overflow:hidden"><tr><td style="background:#0b295b;padding:24px 28px;text-align:left"><a href="${siteUrl}" style="display:inline-block"><img src="${logoUrl}" width="176" alt="Polishers Da Elite" style="display:block;max-width:100%;height:auto;border:0"></a><div style="height:3px;width:50px;margin-top:18px;background:#a0c514"></div></td></tr><tr><td style="padding:32px 28px"><p style="margin:0 0 10px;color:#168d94;font-size:11px;font-weight:bold;letter-spacing:1.5px;text-transform:uppercase">POLISHERS DA ELITE</p><h1 style="margin:0 0 16px;color:#0b295b;font-size:25px;line-height:1.3">${escapeHtml(title)}</h1><p style="margin:0 0 16px;color:#52636d;font-size:15px;line-height:1.7">${escapeHtml(intro)}</p><p style="margin:0;color:#52636d;font-size:14px;line-height:1.7">${detail}</p><p style="margin:24px 0 0"><a href="${siteUrl}" style="display:inline-block;padding:12px 18px;border-radius:4px;background:#0b295b;color:#ffffff;text-decoration:none;font-size:13px;font-weight:bold">Visit our website</a></p></td></tr><tr><td style="padding:22px 28px;background:#0b295b;color:#dce7ec"><p style="margin:0 0 8px;color:#ffffff;font-size:13px;font-weight:bold">Polishers Da Elite Cleaning Services</p><p style="margin:0 0 6px;font-size:12px;line-height:1.6">Lagos, Nigeria · Lagos &amp; nearby areas</p><p style="margin:0 0 14px;font-size:12px;line-height:1.6"><a href="tel:+2348095389606" style="color:#dce7ec;text-decoration:none">+234 809 538 9606</a> · <a href="mailto:polishersdaelit@gmail.com" style="color:#dce7ec;text-decoration:none">polishersdaelit@gmail.com</a></p><div style="font-size:12px">${socialHtml}</div><p style="margin:16px 0 0;color:#aabdc8;font-size:10px">You are receiving this message because you subscribed to updates from Polishers Da Elite.</p></td></tr></table></td></tr></table></body></html>`
+}
+
+async function resendRequest(path, apiKey, body) {
+  const response = await fetch(`https://api.resend.com${path}`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+  const result = await response.json().catch(() => ({}))
+  return { response, result }
+}
+
+module.exports = async function handler(req, res) {
+  res.setHeader('Allow', 'POST')
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed.' })
+
+  const email = String(req.body?.email || '').trim().toLowerCase()
+  if (req.body?.website) return res.status(200).json({ ok: true })
+  if (email.length > 254 || !emailPattern.test(email)) return res.status(400).json({ error: 'Enter a valid email address.' })
+
+  const apiKey = process.env.RESEND_API_KEY
+  const segmentId = process.env.RESEND_SEGMENT_ID || process.env.RESEND_AUDIENCE_ID
+  const from = process.env.RESEND_FROM_EMAIL
+  const adminEmail = process.env.NEWSLETTER_ADMIN_EMAIL
+  if (!apiKey || !segmentId || !from || !adminEmail) {
+    return res.status(503).json({ error: 'Newsletter signup is not configured yet. Please try again later.' })
+  }
+
+  const siteUrl = (process.env.SITE_URL || 'https://polishers.vercel.app').replace(/\/$/, '')
+  const logoUrl = `${siteUrl}/Polishers%20DA%20Elite%20Logo.png`
+  const socialHtml = socialLinks()
+
+  try {
+    const { response: contactResponse } = await resendRequest(
+      '/contacts',
+      apiKey,
+      { email, unsubscribed: false, segments: [{ id: segmentId }] },
+    )
+
+    if (contactResponse.status === 409) {
+      const { response: segmentResponse } = await resendRequest(
+        `/contacts/${encodeURIComponent(email)}/segments/${encodeURIComponent(segmentId)}`,
+        apiKey,
+        {},
+      )
+      if (!segmentResponse.ok && segmentResponse.status !== 409) {
+        console.error('Existing Resend contact could not be added to newsletter segment', { status: segmentResponse.status })
+        return res.status(502).json({ error: 'We could not save your subscription. Please try again.' })
+      }
+      return res.status(200).json({ ok: true, alreadySubscribed: true, message: 'This email is already subscribed.' })
+    }
+    if (!contactResponse.ok) {
+      console.error('Newsletter audience request failed', { status: contactResponse.status })
+      return res.status(502).json({ error: 'We could not save your subscription. Please try again.' })
+    }
+
+    const safeEmail = escapeHtml(email)
+    const subscriberHtml = emailTemplate({
+      title: 'Welcome to a little more shine.',
+      intro: 'Thanks for joining the Polishers Da Elite newsletter. We’ll share occasional cleaning tips, service news, and updates from our team.',
+      detail: 'Whenever you need a hand with your space, simply reply to this email or reach us on WhatsApp. We’re happy to help.',
+      siteUrl,
+      logoUrl,
+      socialHtml,
+    })
+    const adminHtml = emailTemplate({
+      title: 'A new newsletter subscriber',
+      intro: 'A visitor has joined the Polishers Da Elite newsletter.',
+      detail: `<strong style="color:#0b295b">Subscriber email:</strong> ${safeEmail}`,
+      siteUrl,
+      logoUrl,
+      socialHtml,
+    })
+
+    const emails = await Promise.all([
+      resendRequest('/emails', apiKey, { from, to: [email], subject: 'Welcome to Polishers Da Elite', html: subscriberHtml }),
+      resendRequest('/emails', apiKey, { from, to: [adminEmail], subject: 'New Polishers newsletter subscriber', html: adminHtml, reply_to: email }),
+    ])
+    const failedEmail = emails.find(({ response }) => !response.ok)
+    if (failedEmail) {
+      console.error('Newsletter email delivery failed', { status: failedEmail.response.status })
+      return res.status(502).json({ error: 'Your email was added, but we could not send the confirmation. Please contact us if you need help.' })
+    }
+
+    return res.status(201).json({ ok: true, message: 'Thanks for subscribing. Please check your inbox.' })
+  } catch {
+    console.error('Newsletter service request failed')
+    return res.status(502).json({ error: 'We could not complete your subscription. Please try again later.' })
+  }
+}
