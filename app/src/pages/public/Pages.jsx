@@ -10,6 +10,7 @@ import {
 import { faqs, gallery, services, steps, testimonials } from '../../data'
 import { supabase, supabaseConfigured } from '../../supabase'
 import SearchSelect from '../../components/ui/SearchSelect'
+import { usePublishedContent, usePublishedHeroMedia } from '../../components/ui/SiteContentProvider'
 import { useToast } from '../../components/ui/ToastProvider'
 import { friendlyErrorMessage } from '../../utils/friendlyError'
 import {
@@ -17,7 +18,6 @@ import {
 } from '../../components/public/PublicComponents'
 
 const serviceIcons = { Home, Building2, Factory, HardHat }
-const serviceBySlug = Object.fromEntries(services.map((service) => [service.slug, service]))
 const heroAssetBase = `${import.meta.env.BASE_URL}hero%20fallback%20photo/`
 const heroVideoSource = `${heroAssetBase}vid1.mp4`
 const heroSlides = [
@@ -46,25 +46,40 @@ export function HomePage() {
   const [galleryPaused, setGalleryPaused] = useState(false)
   const galleryViewportRef = useRef(null)
   const galleryDragRef = useRef(null)
+  const heroContent = usePublishedContent('hero', {
+    eyebrow: 'Residential · Commercial · Industrial · Post-construction',
+    headline: 'Sparkling Space,',
+    highlight: 'Happy Client.',
+    body: 'Professional cleaning delivered with precision, reliability and class, for homes, offices, factories and estates of every size.',
+  }) || {}
+  const homeServices = usePublishedContent('services', services)
+  const homeGallery = usePublishedContent('gallery', gallery)
+  const homeFaqs = usePublishedContent('faqs', faqs)
+  const curatedTestimonials = usePublishedContent('testimonials', testimonials)
+  const heroMedia = usePublishedHeroMedia()
+  const activeHeroSlide = heroMedia
+    ? { type: heroMedia.type, src: heroMedia.url, title: 'Uploaded hero background' }
+    : heroSlides[heroSlide]
 
   useEffect(() => {
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches || heroSlides[heroSlide].type === 'video') return
+    if (heroMedia || window.matchMedia('(prefers-reduced-motion: reduce)').matches || activeHeroSlide.type === 'video') return
     const timer = window.setTimeout(() => {
       setHeroSlide((current) => (current + 1) % heroSlides.length)
     }, 3500)
     return () => window.clearTimeout(timer)
-  }, [heroSlide])
+  }, [activeHeroSlide.type, heroMedia, heroSlide])
 
   useEffect(() => {
     const video = heroVideoRef.current
     if (!video) return
-    if (heroSlides[heroSlide].type === 'video') {
+    if (activeHeroSlide.type === 'video') {
+      video.src = activeHeroSlide.src
       video.currentTime = 0
       video.play().catch(() => {})
     } else {
       video.pause()
     }
-  }, [heroSlide])
+  }, [activeHeroSlide.src, activeHeroSlide.type])
 
   useEffect(() => {
     const viewport = galleryViewportRef.current
@@ -96,9 +111,8 @@ export function HomePage() {
     return () => window.cancelAnimationFrame(frameId)
   }, [galleryPaused])
 
-  const activeHeroSlide = heroSlides[heroSlide]
-  const homeTestimonials = [...savedTestimonials, ...testimonials]
-  const activeTestimonial = homeTestimonials[testimonialIndex] || testimonials[0]
+  const homeTestimonials = [...savedTestimonials, ...curatedTestimonials]
+  const activeTestimonial = homeTestimonials[testimonialIndex] || null
 
   function updateTestimonial(key, value) {
     setTestimonialForm((current) => ({ ...current, [key]: value }))
@@ -162,9 +176,9 @@ export function HomePage() {
       <section className="hero">
         <div className="container hero-layout">
           <div className="hero-copy">
-            <span className="hero-services">Residential · Commercial · Industrial · Post-construction</span>
-            <h1>Sparkling Space,<br /><em>Happy Client.</em></h1>
-            <p>Professional cleaning delivered with precision, reliability and class, for homes, offices, factories and estates of every size.</p>
+            <span className="hero-services">{heroContent.eyebrow}</span>
+            <h1>{heroContent.headline}<br /><em>{heroContent.highlight}</em></h1>
+            <p>{heroContent.body}</p>
             <div className="hero-buttons">
               <Link to="/quote" className="button button-aqua button-large">Get a Free Quote</Link>
               <a className="button button-glass button-large" href="https://wa.me/2348095389606" target="_blank" rel="noreferrer">WhatsApp Us</a>
@@ -176,8 +190,9 @@ export function HomePage() {
             </div>
           </div>
           <div className={`hero-visual ${activeHeroSlide.type === 'video' ? 'hero-visual-video' : activeHeroSlide.title === 'Polishers Da Elite logo' ? 'hero-visual-logo' : ''}`} style={activeHeroSlide.title === 'Polishers Da Elite logo' ? { '--hero-mobile-image': `url(${heroSlides[2].src})` } : undefined} role="group" aria-roledescription="carousel" aria-label="Featured cleaning spaces">
-            {heroSlides.map((slide, index) => slide.type === 'image' && <img className={`hero-slide ${index === heroSlide ? 'hero-slide-active' : ''}`} key={slide.src} src={slide.src} alt={index === heroSlide ? slide.title : ''} aria-hidden={index !== heroSlide} style={{ objectPosition: slide.position, objectFit: slide.fit, backgroundColor: slide.background }} />)}
-            <video className={`hero-slide ${activeHeroSlide.type === 'video' ? 'hero-slide-active' : ''}`} ref={heroVideoRef} src={heroVideoSource} muted playsInline preload="metadata" onEnded={() => setHeroSlide((current) => (current + 1) % heroSlides.length)} aria-label="Featured cleaning video" aria-hidden={activeHeroSlide.type !== 'video'} tabIndex={-1} />
+            {heroMedia?.type === 'image' && <img className="hero-slide hero-slide-active" src={heroMedia.url} alt="Hero background" />}
+            {!heroMedia && heroSlides.map((slide, index) => slide.type === 'image' && <img className={`hero-slide ${index === heroSlide ? 'hero-slide-active' : ''}`} key={slide.src} src={slide.src} alt={index === heroSlide ? slide.title : ''} aria-hidden={index !== heroSlide} style={{ objectPosition: slide.position, objectFit: slide.fit, backgroundColor: slide.background }} />)}
+            <video className={`hero-slide ${activeHeroSlide.type === 'video' ? 'hero-slide-active' : ''}`} ref={heroVideoRef} src={activeHeroSlide.type === 'video' ? activeHeroSlide.src : heroVideoSource} muted playsInline preload="metadata" onEnded={() => { if (!heroMedia) setHeroSlide((current) => (current + 1) % heroSlides.length) }} aria-label="Featured cleaning video" aria-hidden={activeHeroSlide.type !== 'video'} tabIndex={-1} />
             <div className="hero-note"><b>Free site inspection</b><span>Response within 24 hours</span></div>
           </div>
         </div>
@@ -186,7 +201,7 @@ export function HomePage() {
       <section className="section services-section" id="services">
         <div className="container">
           <div className="home-services-heading"><SectionHeading eyebrow="WHAT WE DO" title="Our Services" /><Link to="/services#services">See all <ArrowRight size={15} /></Link></div>
-          <div className="service-grid">{services.map((service) => <ServiceCard key={service.slug} service={service} iconOnly />)}</div>
+          <div className="service-grid">{homeServices.map((service) => <ServiceCard key={service.slug} service={service} iconOnly />)}</div>
         </div>
       </section>
 
@@ -202,7 +217,7 @@ export function HomePage() {
           <div className="home-gallery-viewport" ref={galleryViewportRef} role="region" aria-label="Recent cleaning work" onPointerDown={startGalleryDrag} onPointerMove={moveGalleryDrag} onPointerUp={endGalleryDrag} onPointerCancel={endGalleryDrag}>
             <div className="home-gallery-track" onClickCapture={handleGalleryItemClick}>
               {[0, 1].map((group) => <div className="home-gallery-group" key={group} aria-hidden={group === 1 || undefined}>
-                {gallery.map((item, index) => <Link className="home-gallery-item" to="/gallery#gallery" key={`${item.title}-${index}`} tabIndex={group === 1 ? -1 : undefined}>
+                {homeGallery.map((item, index) => <Link className="home-gallery-item" to="/gallery#gallery" key={`${item.title}-${index}`} tabIndex={group === 1 ? -1 : undefined}>
                   <img src={item.image} alt={group === 1 ? '' : item.title} loading="lazy" />
                   <span><small>{item.category}</small><b>{item.title}</b></span>
                 </Link>)}
@@ -236,7 +251,7 @@ export function HomePage() {
         <div className="container home-faq-layout">
           <SectionHeading eyebrow="GOOD TO KNOW" title="A few quick answers." copy="Have a different question? Get in touch and we will help." />
           <div className="home-faq-list">
-            {faqs.map((item, index) => <article className="home-faq-item" key={item.question}>
+            {homeFaqs.map((item, index) => <article className="home-faq-item" key={item.question}>
               <h3>
                 <button type="button" aria-expanded={openFaq === index} aria-controls={`home-faq-answer-${index}`} onClick={() => setOpenFaq((current) => current === index ? -1 : index)}>
                   <span>{item.question}</span><ChevronDown size={18} aria-hidden="true" />
@@ -254,17 +269,19 @@ export function HomePage() {
           <div className="home-testimonials-layout">
             <div className="home-testimonial-slider">
               <article className="home-testimonial-slide" aria-live="polite">
-                <div className="home-testimonial-stars" role="img" aria-label={`${activeTestimonial.rating} out of 5 stars`}>
-                  {Array.from({ length: 5 }, (_, index) => <Star key={index} size={16} fill={index < activeTestimonial.rating ? 'currentColor' : 'none'} />)}
-                </div>
-                <blockquote>“{activeTestimonial.quote}”</blockquote>
-                <div className="home-testimonial-author"><b>{activeTestimonial.name}</b><span>{activeTestimonial.role}</span></div>
+                {activeTestimonial ? <>
+                  <div className="home-testimonial-stars" role="img" aria-label={`${activeTestimonial.rating} out of 5 stars`}>
+                    {Array.from({ length: 5 }, (_, index) => <Star key={index} size={16} fill={index < activeTestimonial.rating ? 'currentColor' : 'none'} />)}
+                  </div>
+                  <blockquote>“{activeTestimonial.quote}”</blockquote>
+                  <div className="home-testimonial-author"><b>{activeTestimonial.name}</b><span>{activeTestimonial.role}</span></div>
+                </> : <p>No testimonials have been published yet.</p>}
               </article>
-              <div className="home-testimonial-controls">
+              {homeTestimonials.length > 1 && <div className="home-testimonial-controls">
                 <button className="round-control" type="button" aria-label="Previous testimonial" onClick={() => setTestimonialIndex((current) => (current - 1 + homeTestimonials.length) % homeTestimonials.length)}><ArrowLeft size={16} /></button>
                 <span>{testimonialIndex + 1}<i>/</i>{homeTestimonials.length}</span>
                 <button className="round-control" type="button" aria-label="Next testimonial" onClick={() => setTestimonialIndex((current) => (current + 1) % homeTestimonials.length)}><ArrowRight size={16} /></button>
-              </div>
+              </div>}
             </div>
             <form className="home-testimonial-form" onSubmit={submitTestimonial}>
               <span className="eyebrow">SHARE YOUR EXPERIENCE</span>
@@ -289,12 +306,14 @@ export function HomePage() {
 }
 
 export function ServicesPage() {
-  return <PublicLayout><PageHero eyebrow="THOUGHTFUL BY DESIGN" title={<>A considered clean<br /><em>for every space.</em></>} copy="From the place you call home to the place you get things done — we've got it covered." image={services[1].image} /><section className="section page-services" id="services"><div className="container"><div className="service-grid">{services.map((service) => <ServiceCard key={service.slug} service={service} />)}</div><div className="services-note"><Sparkles size={20} /><span>Not sure where to start? <Link to="/contact#contact-section">Tell us a little about your space <ArrowRight size={15} /></Link></span></div></div></section></PublicLayout>
+  const publishedServices = usePublishedContent('services', services)
+  return <PublicLayout><PageHero eyebrow="THOUGHTFUL BY DESIGN" title={<>A considered clean<br /><em>for every space.</em></>} copy="From the place you call home to the place you get things done — we've got it covered." image={publishedServices[1]?.image || services[1].image} /><section className="section page-services" id="services"><div className="container"><div className="service-grid">{publishedServices.map((service) => <ServiceCard key={service.slug} service={service} />)}</div><div className="services-note"><Sparkles size={20} /><span>Not sure where to start? <Link to="/contact#contact-section">Tell us a little about your space <ArrowRight size={15} /></Link></span></div></div></section></PublicLayout>
 }
 
 export function ServiceDetail() {
   const { slug } = useParams()
-  const service = serviceBySlug[slug]
+  const publishedServices = usePublishedContent('services', services)
+  const service = publishedServices.find((item) => item.slug === slug)
   if (!service) return <PublicLayout><NotFound /></PublicLayout>
   const Icon = serviceIcons[service.icon] || Sparkles
   return <PublicLayout>
@@ -306,11 +325,12 @@ export function ServiceDetail() {
 }
 
 export function GalleryPage() {
+  const publishedGallery = usePublishedContent('gallery', gallery)
   const categories = ['All', 'Residential', 'Commercial', 'Industrial', 'Post-construction']
   const [category, setCategory] = useState('All')
   const [lightbox, setLightbox] = useState(null)
-  const visible = category === 'All' ? gallery : gallery.filter((item) => item.category === category)
-  return <PublicLayout><PageHero eyebrow="A PICTURE OF CARE" title={<>The feeling of a<br /><em>space well kept.</em></>} copy="Every photo is a little reminder: the details make all the difference." image={gallery[0].image} />
+  const visible = category === 'All' ? publishedGallery : publishedGallery.filter((item) => item.category === category)
+  return <PublicLayout><PageHero eyebrow="A PICTURE OF CARE" title={<>The feeling of a<br /><em>space well kept.</em></>} copy="Every photo is a little reminder: the details make all the difference." image={publishedGallery[0]?.image || gallery[0].image} />
     <section className="section gallery-section" id="gallery"><div className="container"><div className="gallery-toolbar"><div className="filter-chips">{categories.map((item) => <button key={item} className={category === item ? 'chip chip-active' : 'chip'} onClick={() => setCategory(item)}>{item}</button>)}</div><span>{visible.length} spaces</span></div><div className="gallery-grid">{visible.map((item, index) => <button className={`gallery-tile gallery-tile-${index % 4}`} key={item.title} onClick={() => setLightbox(item)}><img src={item.image} alt={item.title} loading="lazy" /><span className="gallery-tile-caption"><span><small>{item.category}</small><b>{item.title}</b></span><span className="gallery-tile-arrow"><ArrowUpRight size={17} /></span></span></button>)}</div><div className="gallery-bottom"><Sparkles size={17} /><span>There's always more to see. <Link to="/quote">Let us make your space next.</Link></span></div></div></section>
     {lightbox && <div className="lightbox" role="dialog" aria-modal="true" aria-label={lightbox.title} onClick={() => setLightbox(null)}><button aria-label="Close image" className="lightbox-close"><X /></button><img src={lightbox.image} alt={lightbox.title} /><div><small>{lightbox.category}</small><b>{lightbox.title}</b></div></div>}
   </PublicLayout>
@@ -367,14 +387,21 @@ async function saveRequest(payload) {
 export function QuotePage() {
   const [params] = useSearchParams()
   const navigate = useNavigate()
-  const initialService = serviceBySlug[params.get('service')] ? params.get('service') : ''
+  const publishedServices = usePublishedContent('services', services)
+  const requestedService = params.get('service') || ''
+  const initialService = publishedServices.some((service) => service.slug === requestedService) ? requestedService : ''
   const [step, setStep] = useState(0)
   const [form, setForm] = useState({ service_type: initialService, property_type: '', size_note: '', address: '', preferred_date: '', preferred_time: '', full_name: '', phone: '', email: '', message: '', photo: null })
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
   const showToast = useToast()
+  useEffect(() => {
+    if (!form.service_type && publishedServices.some((service) => service.slug === requestedService)) {
+      setForm((current) => ({ ...current, service_type: requestedService }))
+    }
+  }, [form.service_type, publishedServices, requestedService])
   const update = (key, value) => setForm((current) => ({ ...current, [key]: value }))
-  const serviceLabel = serviceBySlug[form.service_type]?.title || form.service_type
+  const serviceLabel = publishedServices.find((service) => service.slug === form.service_type)?.title || form.service_type
   const canContinue = [
     Boolean(form.service_type),
     Boolean(form.property_type && form.address),

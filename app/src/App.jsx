@@ -4,6 +4,7 @@ import AdminLayout from './components/layout/AdminLayout'
 import Dashboard from './pages/admin/Dashboard'
 import AdminLogin from './pages/admin/AdminLogin'
 import Requests from './pages/admin/Requests'
+import Notifications from './pages/admin/Notifications'
 import { ContentPage, TeamPage } from './pages/admin/WorkspacePages'
 import {
   AboutPage,
@@ -52,6 +53,7 @@ export default function App() {
         <Route path="/admin" element={<AdminLayout />}>
           <Route index element={<Dashboard />} />
           <Route path="requests" element={<Requests />} />
+          <Route path="notifications" element={<Notifications />} />
           <Route path="content" element={<ContentPage />} />
           <Route path="team" element={<TeamPage />} />
           <Route path="settings" element={<Navigate to="/admin" replace />} />
