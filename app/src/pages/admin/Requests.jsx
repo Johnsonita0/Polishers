@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { Check, ChevronDown, Download, MessageCircle, Search } from 'lucide-react'
+import { Check, ChevronDown, Download, MessageCircle, Search, X, ZoomIn } from 'lucide-react'
 import Badge from '../../components/ui/Badge.jsx'
 import Card from '../../components/ui/Card.jsx'
 import { useToast } from '../../components/ui/ToastProvider'
@@ -34,7 +34,7 @@ export default function Requests() {
         return
       }
       try {
-        let query = supabase.from('service_requests').select('id, reference, full_name, phone, email, service_type, address, preferred_date, message, status, created_at').order('created_at', { ascending: false })
+        let query = supabase.from('service_requests').select('id, reference, full_name, phone, email, service_type, address, preferred_date, message, photo_urls, status, created_at').order('created_at', { ascending: false })
         if (requestedReference) query = query.eq('reference', requestedReference).limit(1)
         else {
           if (status !== 'all') query = query.eq('status', status)
@@ -47,8 +47,27 @@ export default function Requests() {
           setError(message)
           showToast({ tone: 'error', title: 'Could not load requests', message })
         } else {
+          const photoPaths = [...new Set((data || []).flatMap((request) => request.photo_urls || []))]
+          const signedUrlsByPath = new Map()
+          if (photoPaths.length) {
+            try {
+              const { data: signedPhotos, error: signedPhotoError } = await supabase.storage
+                .from('request-uploads')
+                .createSignedUrls(photoPaths, 60 * 60)
+              if (signedPhotoError) throw signedPhotoError
+              for (const photo of signedPhotos || []) {
+                if (photo.path && photo.signedUrl) signedUrlsByPath.set(photo.path, photo.signedUrl)
+              }
+            } catch (issue) {
+              showToast({ tone: 'error', title: 'Request photos unavailable', message: friendlyErrorMessage(issue, 'Client details loaded, but attached photos could not be opened.') })
+            }
+          }
+          if (!active) return
           setError('')
-          setRequests(data || [])
+          setRequests((data || []).map((request) => ({
+            ...request,
+            photo_urls: (request.photo_urls || []).map((path) => signedUrlsByPath.get(path)).filter(Boolean),
+          })))
           if (requestedReference && data?.[0]) setExpandedRequests(new Set([data[0].id]))
         }
       } catch (issue) {
@@ -133,8 +152,9 @@ function RequestTableRows({ request, expanded, onToggle, updating, onMarkContact
 }
 
 function RequestDetail({ request, updating, onMarkContacted }) {
+  const [previewUrl, setPreviewUrl] = useState('')
   const service = request.service_type?.replaceAll('_', ' ') || 'cleaning service'
   const message = [`Hi ${request.full_name || 'there'}, this is the Polishers Da Elite team.`, `We received your request ${request.reference} for ${service}${request.address ? ` in ${request.address}` : ''}${request.preferred_date ? `, with a preferred date of ${request.preferred_date}` : ''}.`, 'Is this a good time to discuss how we can help?'].join(' ')
   const contactHref = whatsappHref(request.phone, message)
-  return <div className="request-detail-panel"><dl><div><dt>Phone</dt><dd>{request.phone || 'Not provided'}</dd></div><div><dt>Email</dt><dd>{request.email || 'Not provided'}</dd></div><div><dt>Service</dt><dd>{request.service_type}</dd></div><div><dt>Area</dt><dd>{request.address || 'Not provided'}</dd></div><div><dt>Preferred date</dt><dd>{request.preferred_date || 'Flexible'}</dd></div><div><dt>Received</dt><dd>{new Date(request.created_at).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' })}</dd></div>{request.message && <div className="request-message-detail"><dt>Client message</dt><dd>{request.message}</dd></div>}</dl><div className="request-mobile-actions">{contactHref ? <a className="request-whatsapp-button" href={contactHref} target="_blank" rel="noreferrer"><MessageCircle size={15} /> Message {request.full_name?.split(' ')[0] || 'client'}</a> : <span className="request-no-phone">No phone number supplied</span>}<button className="request-contacted-button" type="button" disabled={request.status === 'contacted' || updating} onClick={onMarkContacted}>{request.status === 'contacted' ? <><Check size={14} /> Contacted</> : updating ? 'Saving…' : 'Mark contacted'}</button></div></div>
+  return <div className="request-detail-panel">{request.photo_urls?.length > 0 && <section className="request-photos" aria-label="Client building photos"><h3>Photos of the space</h3><div className="request-photo-grid">{request.photo_urls.map((photoUrl, index) => <button className="request-photo-button" type="button" aria-label={`Zoom photo ${index + 1} of ${request.full_name}'s space`} onClick={() => setPreviewUrl(photoUrl)} key={photoUrl}><img src={photoUrl} alt={`${request.full_name}'s space, photo ${index + 1}`} loading="lazy" /><span><ZoomIn size={13} /> Zoom</span></button>)}</div></section>}<dl><div><dt>Phone</dt><dd>{request.phone || 'Not provided'}</dd></div><div><dt>Email</dt><dd>{request.email || 'Not provided'}</dd></div><div><dt>Service</dt><dd>{request.service_type}</dd></div><div><dt>Area</dt><dd>{request.address || 'Not provided'}</dd></div><div><dt>Preferred date</dt><dd>{request.preferred_date || 'Flexible'}</dd></div><div><dt>Received</dt><dd>{new Date(request.created_at).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' })}</dd></div>{request.message && <div className="request-message-detail"><dt>Client message</dt><dd>{request.message}</dd></div>}</dl><div className="request-mobile-actions">{contactHref ? <a className="request-whatsapp-button" href={contactHref} target="_blank" rel="noreferrer"><MessageCircle size={15} /> Message {request.full_name?.split(' ')[0] || 'client'}</a> : <span className="request-no-phone">No phone number supplied</span>}<button className="request-contacted-button" type="button" disabled={request.status === 'contacted' || updating} onClick={onMarkContacted}>{request.status === 'contacted' ? <><Check size={14} /> Contacted</> : updating ? 'Saving…' : 'Mark contacted'}</button></div>{previewUrl && <div className="request-photo-modal" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setPreviewUrl('') }}><section role="dialog" aria-modal="true" aria-label={`Photo of ${request.full_name}'s space`}><button className="request-photo-modal-close" type="button" aria-label="Close photo" onClick={() => setPreviewUrl('')}><X size={20} /></button><img src={previewUrl} alt={`Full-size photo of ${request.full_name}'s space`} /></section></div>}</div>
 }
