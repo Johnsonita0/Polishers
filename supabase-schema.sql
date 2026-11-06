@@ -86,14 +86,21 @@ create table if not exists public.newsletter_campaigns (
   image_url text,
   cta_label text not null default '',
   cta_url text not null default '',
-  status text not null default 'draft' check (status in ('draft', 'sending', 'sent')),
+  status text not null default 'draft' check (status in ('draft', 'sending', 'scheduled', 'sent')),
   resend_broadcast_id text,
   created_by uuid references public.profiles (id) on delete set null,
   updated_by uuid references public.profiles (id) on delete set null,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
+  scheduled_at timestamptz,
   sent_at timestamptz
 );
+
+alter table public.newsletter_campaigns add column if not exists scheduled_at timestamptz;
+alter table public.newsletter_campaigns drop constraint if exists newsletter_campaigns_status_check;
+alter table public.newsletter_campaigns
+  add constraint newsletter_campaigns_status_check
+  check (status in ('draft', 'sending', 'scheduled', 'sent'));
 
 create table if not exists public.newsletter_subscribers (
   email text primary key,
@@ -145,6 +152,9 @@ create unique index if not exists notifications_request_created_unique
   where event_type = 'request_created' and request_id is not null;
 create index if not exists newsletter_campaigns_created_at_idx
   on public.newsletter_campaigns (created_at desc);
+create index if not exists newsletter_campaigns_scheduled_at_idx
+  on public.newsletter_campaigns (scheduled_at)
+  where status = 'scheduled';
 create index if not exists newsletter_subscribers_created_at_idx
   on public.newsletter_subscribers (created_at desc);
 

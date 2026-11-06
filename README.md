@@ -2,7 +2,7 @@
 
 ## Newsletter setup
 
-The public newsletter popup opens after five seconds, can be reopened from the site footer, and posts to the Vercel serverless endpoint at `/api/newsletter`. The endpoint stores each normalized email in Supabase; when configured, it also adds the subscriber to a Resend Segment and sends welcome and admin notification emails. Admins can view collected subscribers, save campaign drafts, upload images, preview the email, and send a campaign to the Segment from `/admin/newsletter`.
+The public newsletter popup opens after five seconds, can be reopened from the site footer, and posts to the Vercel serverless endpoint at `/api/newsletter`. The endpoint stores each normalized email in Supabase; when configured, it also adds the subscriber to a Resend Segment and sends welcome and admin notification emails. Admins can view collected subscribers, save campaign drafts, preview emails, send immediately, or schedule delivery for a selected local date and time. Scheduled campaigns can be canceled back to drafts from `/admin/newsletter`.
 
 Configure these environment variables in Vercel for Production and Preview:
 

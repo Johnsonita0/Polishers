@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react'
-import { Eye, Image as ImageIcon, Mail, Plus, Save, Send, Trash2, Upload } from 'lucide-react'
+import { CalendarDays, Eye, Image as ImageIcon, Mail, Plus, Save, Send, Trash2, Upload } from 'lucide-react'
 import Card from '../../components/ui/Card.jsx'
 import { useToast } from '../../components/ui/ToastProvider'
 import { supabase, supabaseConfigured } from '../../supabase'
 import { friendlyErrorMessage } from '../../utils/friendlyError'
+import '../../styles/newsletter-scheduler.css'
 
 const emptyCampaign = {
+  status: 'draft',
   title: '',
   subject: '',
   preheader: '',
@@ -18,6 +20,24 @@ const allowedImages = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': '
 
 function formatDate(value) {
   return value ? new Date(value).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'Draft'
+}
+
+function formatDateTime(value) {
+  return value ? new Date(value).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Draft'
+}
+
+function toLocalDateTime(value) {
+  if (!value) return ''
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return ''
+  date.setMinutes(date.getMinutes() - date.getTimezoneOffset())
+  return date.toISOString().slice(0, 16)
+}
+
+function minimumScheduleDateTime() {
+  const date = new Date(Date.now() + 5 * 60 * 1000)
+  date.setMinutes(date.getMinutes() - date.getTimezoneOffset())
+  return date.toISOString().slice(0, 16)
 }
 
 async function loadSubscribers(accessToken) {
@@ -49,6 +69,7 @@ export default function NewsletterAdmin() {
   const [subscriberCount, setSubscriberCount] = useState(0)
   const [hasMoreSubscribers, setHasMoreSubscribers] = useState(false)
   const [draft, setDraft] = useState(null)
+  const [scheduleAt, setScheduleAt] = useState('')
   const [loading, setLoading] = useState(true)
   const [deliveryNotice, setDeliveryNotice] = useState('')
   const [saving, setSaving] = useState(false)
@@ -68,8 +89,11 @@ export default function NewsletterAdmin() {
       try {
         const { data: sessionData, error: sessionError } = await supabase.auth.getSession()
         if (sessionError) throw sessionError
+        await fetch('/api/newsletter-admin?action=sync-campaigns', {
+          headers: { Authorization: `Bearer ${sessionData.session?.access_token || ''}` },
+        }).catch(() => null)
         const [campaignResult, subscriberData] = await Promise.all([
-          supabase.from('newsletter_campaigns').select('id, title, subject, preheader, body, image_url, cta_label, cta_url, status, resend_broadcast_id, created_at, updated_at, sent_at').order('created_at', { ascending: false }),
+          supabase.from('newsletter_campaigns').select('id, title, subject, preheader, body, image_url, cta_label, cta_url, status, resend_broadcast_id, created_at, updated_at, scheduled_at, sent_at').order('created_at', { ascending: false }),
           loadSubscribers(sessionData.session?.access_token),
         ])
         if (campaignResult.error) throw campaignResult.error
@@ -117,6 +141,7 @@ export default function NewsletterAdmin() {
         cta_label: draft.cta_label.trim(),
         cta_url: draft.cta_url.trim(),
         status: 'draft',
+        scheduled_at: null,
         updated_by: userData.user.id,
       }
       const result = draft.id
@@ -184,10 +209,67 @@ export default function NewsletterAdmin() {
     }
   }
 
+  async function scheduleCampaign() {
+    if (!draft?.id || draft.status !== 'draft' || !scheduleAt || sending) return
+    const scheduledTime = new Date(scheduleAt)
+    if (Number.isNaN(scheduledTime.getTime()) || scheduledTime.getTime() < Date.now() + 5 * 60 * 1000) {
+      showToast({ tone: 'error', title: 'Choose a later time', message: 'Schedule delivery at least five minutes from now.' })
+      return
+    }
+    const scheduledAt = scheduledTime.toISOString()
+    if (!window.confirm(`Schedule “${draft.subject}” for ${formatDateTime(scheduledAt)}?`)) return
+    setSending(true)
+    try {
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession()
+      if (sessionError) throw sessionError
+      const response = await fetch('/api/newsletter-admin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${sessionData.session?.access_token || ''}` },
+        body: JSON.stringify({ action: 'schedule', campaignId: draft.id, scheduledAt }),
+      })
+      const result = await response.json().catch(() => ({}))
+      if (!response.ok) throw new Error(result.error || 'The newsletter could not be scheduled.')
+      const updatedCampaigns = await reloadCampaigns()
+      setDraft(updatedCampaigns.find((campaign) => campaign.id === draft.id) || { ...draft, status: 'scheduled', scheduled_at: scheduledAt, resend_broadcast_id: result.broadcastId })
+      setScheduleAt('')
+      showToast({ tone: result.warning ? 'info' : 'success', title: 'Newsletter scheduled', message: result.warning || `Delivery is scheduled for ${formatDateTime(scheduledAt)}.` })
+    } catch (issue) {
+      showToast({ tone: 'error', title: 'Could not schedule newsletter', message: friendlyErrorMessage(issue, 'Check your Resend setup and try again.') })
+    } finally {
+      setSending(false)
+    }
+  }
+
+  async function cancelScheduledCampaign() {
+    if (!draft?.id || draft.status !== 'scheduled' || sending) return
+    if (!window.confirm(`Cancel the scheduled delivery of “${draft.subject}” and return it to drafts?`)) return
+    setSending(true)
+    try {
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession()
+      if (sessionError) throw sessionError
+      const response = await fetch('/api/newsletter-admin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${sessionData.session?.access_token || ''}` },
+        body: JSON.stringify({ action: 'cancel', campaignId: draft.id }),
+      })
+      const result = await response.json().catch(() => ({}))
+      if (!response.ok) throw new Error(result.error || 'The scheduled newsletter could not be cancelled.')
+      const updatedCampaigns = await reloadCampaigns()
+      setDraft(updatedCampaigns.find((campaign) => campaign.id === draft.id) || { ...draft, status: 'draft', scheduled_at: null, resend_broadcast_id: null })
+      setScheduleAt('')
+      showToast({ tone: result.warning ? 'info' : 'success', title: 'Schedule cancelled', message: result.warning || 'The newsletter is back in drafts.' })
+    } catch (issue) {
+      showToast({ tone: 'error', title: 'Could not cancel schedule', message: friendlyErrorMessage(issue, 'Check your Resend setup and try again.') })
+    } finally {
+      setSending(false)
+    }
+  }
+
   async function reloadCampaigns() {
-    const { data, error: loadError } = await supabase.from('newsletter_campaigns').select('id, title, subject, preheader, body, image_url, cta_label, cta_url, status, resend_broadcast_id, created_at, updated_at, sent_at').order('created_at', { ascending: false })
+    const { data, error: loadError } = await supabase.from('newsletter_campaigns').select('id, title, subject, preheader, body, image_url, cta_label, cta_url, status, resend_broadcast_id, created_at, updated_at, scheduled_at, sent_at').order('created_at', { ascending: false })
     if (loadError) throw loadError
     setCampaigns(data || [])
+    return data || []
   }
 
   async function deleteDraft(campaign) {
@@ -205,13 +287,39 @@ export default function NewsletterAdmin() {
   const previewHtml = draft?.body?.trim() || 'Your newsletter message will appear here.'
 
   return <section className="newsletter-admin-page">
-    <div className="admin-page-heading"><div><span className="eyebrow">EMAIL MARKETING</span><h1>Newsletter</h1><p>Create a campaign and send it to subscribed contacts.</p></div><button className="admin-action-button" type="button" onClick={() => setDraft({ ...emptyCampaign })}><Plus size={15} /> New newsletter</button></div>
+    <div className="admin-page-heading"><div><span className="eyebrow">EMAIL MARKETING</span><h1>Newsletter</h1><p>Create a campaign and send it to subscribed contacts.</p></div><button className="admin-action-button" type="button" onClick={() => { setDraft({ ...emptyCampaign }); setScheduleAt('') }}><Plus size={15} /> New newsletter</button></div>
     {error && <div className="admin-error-notice">{error}</div>}
     {deliveryNotice && <div className="admin-demo-notice"><Mail size={15} /><span>{deliveryNotice}</span></div>}
     <div className="newsletter-admin-overview">
       <Card className="newsletter-subscriber-card"><div><span className="kpi-icon kpi-aqua"><Mail size={17} /></span><span className="eyebrow">SUBSCRIBERS</span></div><strong>{subscriberCount}</strong><p>Collected newsletter subscribers</p>{subscribers.length > 0 && <div className="newsletter-subscriber-list"><b>Subscriber emails{hasMoreSubscribers ? ' (latest 1,000)' : ''}</b>{subscribers.map((subscriber) => <span key={subscriber.email}>{subscriber.email}</span>)}</div>}</Card>
-      <Card className="newsletter-campaign-list"><div className="newsletter-panel-heading"><div><h2>Saved newsletters</h2><p>{campaigns.length} saved campaign{campaigns.length === 1 ? '' : 's'}</p></div></div>{loading ? <div className="admin-empty">Loading campaigns…</div> : campaigns.length === 0 ? <div className="newsletter-no-campaigns">No campaigns yet. Create a draft to get started.</div> : <div className="newsletter-campaign-rows">{campaigns.map((campaign) => <article className="newsletter-campaign-row" key={campaign.id}><button type="button" onClick={() => setDraft(campaign)}><span className={`newsletter-campaign-status is-${campaign.status}`}>{campaign.status}</span><b>{campaign.title}</b><small>{campaign.subject}</small><time>{formatDate(campaign.sent_at || campaign.updated_at)}</time></button>{campaign.status === 'draft' && <button className="newsletter-delete-button" type="button" aria-label={`Delete ${campaign.title}`} onClick={() => deleteDraft(campaign)}><Trash2 size={15} /></button>}</article>)}</div>}</Card>
+      <Card className="newsletter-campaign-list"><div className="newsletter-panel-heading"><div><h2>Saved newsletters</h2><p>{campaigns.length} saved campaign{campaigns.length === 1 ? '' : 's'}</p></div></div>{loading ? <div className="admin-empty">Loading campaigns…</div> : campaigns.length === 0 ? <div className="newsletter-no-campaigns">No campaigns yet. Create a draft to get started.</div> : <div className="newsletter-campaign-rows">{campaigns.map((campaign) => <article className="newsletter-campaign-row" key={campaign.id}><button type="button" onClick={() => { setDraft(campaign); setScheduleAt('') }}><span className={`newsletter-campaign-status is-${campaign.status}`}>{campaign.status}</span><b>{campaign.title}</b><small>{campaign.subject}</small><time>{formatDateTime(campaign.scheduled_at || campaign.sent_at || campaign.updated_at)}</time></button>{campaign.status === 'draft' && <button className="newsletter-delete-button" type="button" aria-label={`Delete ${campaign.title}`} onClick={() => deleteDraft(campaign)}><Trash2 size={15} /></button>}</article>)}</div>}</Card>
     </div>
-    {draft && <div className="newsletter-editor-layout"><Card className="newsletter-editor-card"><form onSubmit={saveDraft}><div className="newsletter-panel-heading"><div><span className="eyebrow">{draft.id ? draft.status === 'sent' ? 'SENT CAMPAIGN' : 'EDIT DRAFT' : 'NEW DRAFT'}</span><h2>{draft.id ? draft.title : 'Compose newsletter'}</h2></div><button className="content-icon-action" type="button" onClick={() => setDraft(null)}>Close</button></div><label className="newsletter-field">Campaign title / email headline<input required maxLength={120} value={draft.title} onChange={(event) => updateDraft('title', event.target.value)} disabled={draft.status !== 'draft'} placeholder="e.g. Fresh ideas for a happier space" /></label><label className="newsletter-field">Email subject<input required maxLength={150} value={draft.subject} onChange={(event) => updateDraft('subject', event.target.value)} disabled={draft.status !== 'draft'} placeholder="A fresh start for your home" /></label><label className="newsletter-field">Preview text<input maxLength={180} value={draft.preheader || ''} onChange={(event) => updateDraft('preheader', event.target.value)} disabled={draft.status !== 'draft'} placeholder="A short line shown beside the subject" /></label><label className="newsletter-field">Message<textarea required rows={8} maxLength={10000} value={draft.body} onChange={(event) => updateDraft('body', event.target.value)} disabled={draft.status !== 'draft'} placeholder="Write your newsletter message. Separate paragraphs with a blank line." /></label><div className="newsletter-field"><span>Campaign image</span><div className="newsletter-image-upload">{draft.image_url ? <img src={draft.image_url} alt="Newsletter campaign" /> : <span className="newsletter-image-empty"><ImageIcon size={20} />No image uploaded</span>}<label className="newsletter-upload-button"><Upload size={15} />{uploading ? 'Uploading…' : draft.image_url ? 'Replace image' : 'Upload image'}<input type="file" accept="image/jpeg,image/png,image/webp" onChange={uploadImage} disabled={uploading || draft.status !== 'draft' || !supabaseConfigured} /></label>{draft.image_url && draft.status === 'draft' && <button type="button" className="content-icon-action is-danger" onClick={() => updateDraft('image_url', '')}>Remove image</button>}</div><small>JPG, PNG, or WebP up to 10 MB. Image is public so email clients can display it.</small></div><div className="newsletter-cta-fields"><label className="newsletter-field">Button label<input maxLength={50} value={draft.cta_label || ''} onChange={(event) => updateDraft('cta_label', event.target.value)} disabled={draft.status !== 'draft'} placeholder="Explore our services" /></label><label className="newsletter-field">Button URL<input type="url" value={draft.cta_url || ''} onChange={(event) => updateDraft('cta_url', event.target.value)} disabled={draft.status !== 'draft'} placeholder="https://polishers.vercel.app/services" /></label></div><div className="newsletter-editor-actions">{draft.status === 'draft' && <><button className="button button-quiet" type="button" onClick={() => setDraft({ ...emptyCampaign })}>New draft</button><button className="button button-dark" type="submit" disabled={saving || uploading}><Save size={15} />{saving ? 'Saving…' : 'Save draft'}</button><button className="button button-aqua" type="button" onClick={sendCampaign} disabled={!draft.id || !subscriberCount || saving || sending}>{sending ? 'Sending…' : <><Send size={15} /> Send to subscribers</>}</button></>}</div></form></Card><Card className="newsletter-preview-card"><div className="newsletter-panel-heading"><div><span className="eyebrow">EMAIL PREVIEW</span><h2>{draft.subject || 'Your subject line'}</h2></div><Eye size={16} /></div><div className="newsletter-preview"><header><img src={`${import.meta.env.BASE_URL}Polishers%20DA%20Elite%20Logo.png`} alt="Polishers Da Elite" /></header>{draft.preheader && <small className="newsletter-preview-preheader">{draft.preheader}</small>}<div className="newsletter-preview-body"><span className="eyebrow">POLISHERS DA ELITE</span><h3>{draft.title || 'Your newsletter headline'}</h3>{draft.image_url && <img className="newsletter-preview-image" src={draft.image_url} alt="Newsletter preview" />}<p>{previewHtml}</p>{draft.cta_label && <span className="newsletter-preview-cta">{draft.cta_label}</span>}</div><footer><b>Polishers Da Elite Cleaning Services</b><span>Lagos, Nigeria · +234 809 538 9606</span><small>Unsubscribe from these updates at any time.</small></footer></div></Card></div>}
+    {draft && ['draft', 'scheduled'].includes(draft.status) && <div className="newsletter-schedule-bar">
+      {draft.status === 'draft' ? <>
+        <label className="newsletter-field">Schedule delivery
+          <input type="datetime-local" min={minimumScheduleDateTime()} value={scheduleAt} onChange={(event) => setScheduleAt(event.target.value)} disabled={!draft.id || sending} />
+          <small>{draft.id ? `Time shown in ${Intl.DateTimeFormat().resolvedOptions().timeZone || 'your local time zone'}.` : 'Save this draft before scheduling delivery.'}</small>
+        </label>
+        <button className="button button-aqua" type="button" onClick={scheduleCampaign} disabled={!draft.id || !scheduleAt || saving || sending || !subscriberCount}>{sending ? 'Scheduling…' : <><CalendarDays size={15} /> Schedule delivery</>}</button>
+      </> : <>
+        <div className="newsletter-scheduled-summary"><span className="eyebrow">SCHEDULED DELIVERY</span><strong>{formatDateTime(draft.scheduled_at)}</strong></div>
+        <button className="button button-quiet" type="button" onClick={cancelScheduledCampaign} disabled={sending}>{sending ? 'Cancelling…' : 'Cancel scheduled send'}</button>
+      </>}
+    </div>}
+    {draft && <div className="newsletter-editor-layout">
+      <Card className="newsletter-editor-card">
+        <form onSubmit={saveDraft}>
+          <div className="newsletter-panel-heading"><div><span className="eyebrow">{draft.id ? draft.status === 'sent' ? 'SENT CAMPAIGN' : draft.status === 'scheduled' ? 'SCHEDULED CAMPAIGN' : 'EDIT DRAFT' : 'NEW DRAFT'}</span><h2>{draft.id ? draft.title : 'Compose newsletter'}</h2></div><button className="content-icon-action" type="button" onClick={() => setDraft(null)}>Close</button></div>
+          <label className="newsletter-field">Campaign title / email headline<input required maxLength={120} value={draft.title} onChange={(event) => updateDraft('title', event.target.value)} disabled={draft.status !== 'draft'} placeholder="e.g. Fresh ideas for a happier space" /></label>
+          <label className="newsletter-field">Email subject<input required maxLength={150} value={draft.subject} onChange={(event) => updateDraft('subject', event.target.value)} disabled={draft.status !== 'draft'} placeholder="A fresh start for your home" /></label>
+          <label className="newsletter-field">Preview text<input maxLength={180} value={draft.preheader || ''} onChange={(event) => updateDraft('preheader', event.target.value)} disabled={draft.status !== 'draft'} placeholder="A short line shown beside the subject" /></label>
+          <label className="newsletter-field">Message<textarea required rows={8} maxLength={10000} value={draft.body} onChange={(event) => updateDraft('body', event.target.value)} disabled={draft.status !== 'draft'} placeholder="Write your newsletter message. Separate paragraphs with a blank line." /></label>
+          <div className="newsletter-field"><span>Campaign image</span><div className="newsletter-image-upload">{draft.image_url ? <img src={draft.image_url} alt="Newsletter campaign" /> : <span className="newsletter-image-empty"><ImageIcon size={20} />No image uploaded</span>}<label className="newsletter-upload-button"><Upload size={15} />{uploading ? 'Uploading…' : draft.image_url ? 'Replace image' : 'Upload image'}<input type="file" accept="image/jpeg,image/png,image/webp" onChange={uploadImage} disabled={uploading || draft.status !== 'draft' || !supabaseConfigured} /></label>{draft.image_url && draft.status === 'draft' && <button type="button" className="content-icon-action is-danger" onClick={() => updateDraft('image_url', '')}>Remove image</button>}</div><small>JPG, PNG, or WebP up to 10 MB. Image is public so email clients can display it.</small></div>
+          <div className="newsletter-cta-fields"><label className="newsletter-field">Button label<input maxLength={50} value={draft.cta_label || ''} onChange={(event) => updateDraft('cta_label', event.target.value)} disabled={draft.status !== 'draft'} placeholder="Explore our services" /></label><label className="newsletter-field">Button URL<input type="url" value={draft.cta_url || ''} onChange={(event) => updateDraft('cta_url', event.target.value)} disabled={draft.status !== 'draft'} placeholder="https://polishers.vercel.app/services" /></label></div>
+          <div className="newsletter-editor-actions">{draft.status === 'draft' && <><button className="button button-quiet" type="button" onClick={() => { setDraft({ ...emptyCampaign }); setScheduleAt('') }}>New draft</button><button className="button button-dark" type="submit" disabled={saving || uploading}><Save size={15} />{saving ? 'Saving…' : 'Save draft'}</button><button className="button button-aqua" type="button" onClick={sendCampaign} disabled={!draft.id || !subscriberCount || saving || sending}>{sending ? 'Sending…' : <><Send size={15} /> Send now</>}</button></>}</div>
+        </form>
+      </Card>
+      <Card className="newsletter-preview-card"><div className="newsletter-panel-heading"><div><span className="eyebrow">EMAIL PREVIEW</span><h2>{draft.subject || 'Your subject line'}</h2></div><Eye size={16} /></div><div className="newsletter-preview"><header><img src={`${import.meta.env.BASE_URL}Polishers%20DA%20Elite%20Logo.png`} alt="Polishers Da Elite" /></header>{draft.preheader && <small className="newsletter-preview-preheader">{draft.preheader}</small>}<div className="newsletter-preview-body"><span className="eyebrow">POLISHERS DA ELITE</span><h3>{draft.title || 'Your newsletter headline'}</h3>{draft.image_url && <img className="newsletter-preview-image" src={draft.image_url} alt="Newsletter preview" />}<p>{previewHtml}</p>{draft.cta_label && <span className="newsletter-preview-cta">{draft.cta_label}</span>}</div><footer><b>Polishers Da Elite Cleaning Services</b><span>Lagos, Nigeria · +234 809 538 9606</span><small>Unsubscribe from these updates at any time.</small></footer></div></Card>
+    </div>}
   </section>
 }

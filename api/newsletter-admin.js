@@ -72,6 +72,17 @@ async function updateCampaign(authorization, id, fields) {
   })
 }
 
+async function resendBroadcastRequest(path, method = 'GET', body) {
+  return fetch(`https://api.resend.com${path}`, {
+    method,
+    headers: {
+      Authorization: `Bearer ${resendApiKey}`,
+      ...(body ? { 'Content-Type': 'application/json' } : {}),
+    },
+    ...(body ? { body: JSON.stringify(body) } : {}),
+  })
+}
+
 module.exports = async function handler(req, res) {
   res.setHeader('Allow', 'GET, POST')
   const admin = await verifyAdmin(req.headers.authorization)
@@ -79,7 +90,34 @@ module.exports = async function handler(req, res) {
 
   if (req.method === 'GET') {
     const url = new URL(req.url, 'http://localhost')
-    if (url.searchParams.get('action') !== 'subscribers') return res.status(400).json({ error: 'Unknown newsletter action.' })
+    const action = url.searchParams.get('action')
+    if (action === 'sync-campaigns') {
+      if (!resendApiKey) return res.status(200).json({ ok: true, synced: 0 })
+      const campaignResponse = await fetch(`${supabaseUrl}/rest/v1/newsletter_campaigns?status=eq.scheduled&select=id,resend_broadcast_id`, {
+        headers: supabaseHeaders(req.headers.authorization),
+      })
+      const scheduledCampaigns = await campaignResponse.json().catch(() => [])
+      if (!campaignResponse.ok) return res.status(502).json({ error: 'Scheduled campaigns could not be refreshed.' })
+
+      let synced = 0
+      await Promise.all(scheduledCampaigns.map(async (campaign) => {
+        if (!campaign.resend_broadcast_id) return
+        const broadcastResponse = await resendBroadcastRequest(`/broadcasts/${encodeURIComponent(campaign.resend_broadcast_id)}`)
+        const broadcast = await broadcastResponse.json().catch(() => ({}))
+        if (!broadcastResponse.ok) return
+        let fields = null
+        if (broadcast.status === 'sent') {
+          fields = { status: 'sent', sent_at: broadcast.sent_at || new Date().toISOString() }
+        } else if (['canceled', 'cancelled'].includes(broadcast.status)) {
+          fields = { status: 'draft', scheduled_at: null, resend_broadcast_id: null }
+        }
+        if (!fields) return
+        const updateResponse = await updateCampaign(req.headers.authorization, campaign.id, { ...fields, updated_by: admin.id })
+        if (updateResponse.ok) synced += 1
+      }))
+      return res.status(200).json({ ok: true, synced })
+    }
+    if (action !== 'subscribers') return res.status(400).json({ error: 'Unknown newsletter action.' })
     const subscribersResponse = await fetch(`${supabaseUrl}/rest/v1/newsletter_subscribers?select=email,created_at&order=created_at.desc&limit=1000`, {
       headers: supabaseHeaders(req.headers.authorization, { Prefer: 'count=exact' }),
     })
@@ -99,10 +137,15 @@ module.exports = async function handler(req, res) {
   }
 
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed.' })
-  if (!resendApiKey || !resendSegmentId) return res.status(503).json({ error: 'Newsletter sending is not configured yet.' })
-  if (req.body?.action !== 'send' || !req.body?.campaignId) return res.status(400).json({ error: 'A saved campaign is required.' })
+  const action = req.body?.action
+  if (!['send', 'schedule', 'cancel'].includes(action) || !req.body?.campaignId) {
+    return res.status(400).json({ error: 'Choose a saved campaign action.' })
+  }
+  if (!resendApiKey) return res.status(503).json({ error: 'Newsletter sending is not configured yet.' })
+  if (action !== 'cancel' && !resendSegmentId) return res.status(503).json({ error: 'Newsletter sending is not configured yet.' })
 
   let claimed = false
+  let broadcastAccepted = false
   const campaignId = req.body.campaignId
   try {
     const campaignResponse = await fetch(`${supabaseUrl}/rest/v1/newsletter_campaigns?id=eq.${encodeURIComponent(campaignId)}&select=*`, {
@@ -111,8 +154,40 @@ module.exports = async function handler(req, res) {
     const campaigns = await campaignResponse.json().catch(() => [])
     if (!campaignResponse.ok || !campaigns[0]) return res.status(404).json({ error: 'Campaign not found.' })
     const campaign = campaigns[0]
+
+    if (action === 'cancel') {
+      if (campaign.status !== 'scheduled' || !campaign.resend_broadcast_id) {
+        return res.status(409).json({ error: 'This campaign has no scheduled delivery to cancel.' })
+      }
+      const cancelResponse = await resendBroadcastRequest(`/broadcasts/${encodeURIComponent(campaign.resend_broadcast_id)}/cancel`, 'POST')
+      const cancelResult = await cancelResponse.json().catch(() => ({}))
+      if (!cancelResponse.ok) {
+        console.error('Scheduled newsletter cancellation failed', { status: cancelResponse.status })
+        return res.status(502).json({ error: cancelResult.message || 'The scheduled newsletter could not be cancelled.' })
+      }
+      const savedResponse = await updateCampaign(req.headers.authorization, campaignId, {
+        status: 'draft',
+        scheduled_at: null,
+        resend_broadcast_id: null,
+        updated_by: admin.id,
+      })
+      if (!savedResponse.ok) {
+        return res.status(200).json({ ok: true, warning: 'The send was cancelled, but its draft status could not be saved. Reload the page.' })
+      }
+      return res.status(200).json({ ok: true, status: 'draft' })
+    }
+
     if (campaign.status !== 'draft') return res.status(409).json({ error: 'This campaign has already been sent or is currently sending.' })
     if (!campaign.title?.trim() || !campaign.subject?.trim() || !campaign.body?.trim()) return res.status(400).json({ error: 'Add a title, subject, and message before sending.' })
+
+    let scheduledAt = null
+    if (action === 'schedule') {
+      const requestedTime = Date.parse(req.body.scheduledAt)
+      if (!Number.isFinite(requestedTime) || requestedTime < Date.now() + 5 * 60 * 1000) {
+        return res.status(400).json({ error: 'Choose a delivery time at least five minutes from now.' })
+      }
+      scheduledAt = new Date(requestedTime).toISOString()
+    }
 
     const claimResponse = await fetch(`${supabaseUrl}/rest/v1/newsletter_campaigns?id=eq.${encodeURIComponent(campaignId)}&status=eq.draft`, {
       method: 'PATCH',
@@ -136,6 +211,7 @@ module.exports = async function handler(req, res) {
         text: `${campaign.title}\n\n${campaign.body}${campaign.cta_url ? `\n\n${campaign.cta_label || 'Learn more'}: ${campaign.cta_url}` : ''}\n\nUnsubscribe: {{{RESEND_UNSUBSCRIBE_URL}}}`,
         name: campaign.title,
         send: true,
+        ...(scheduledAt ? { scheduled_at: scheduledAt } : {}),
       }),
     })
     const broadcast = await broadcastResponse.json().catch(() => ({}))
@@ -143,20 +219,24 @@ module.exports = async function handler(req, res) {
       console.error('Resend broadcast failed', { status: broadcastResponse.status })
       throw new Error('Resend could not send this campaign. Check your sender domain and Segment configuration.')
     }
+    broadcastAccepted = true
 
+    const resultFields = action === 'schedule'
+      ? { status: 'scheduled', scheduled_at: scheduledAt, sent_at: null }
+      : { status: 'sent', scheduled_at: null, sent_at: new Date().toISOString() }
     const savedResponse = await updateCampaign(req.headers.authorization, campaignId, {
-      status: 'sent',
+      ...resultFields,
       resend_broadcast_id: broadcast.id || null,
-      sent_at: new Date().toISOString(),
       updated_by: admin.id,
     })
     if (!savedResponse.ok) {
-      console.error('Sent newsletter status could not be saved', { campaignId })
-      return res.status(200).json({ ok: true, warning: 'The broadcast was accepted by Resend, but its sent status could not be saved.' })
+      console.error('Newsletter delivery status could not be saved', { campaignId })
+      const deliveryVerb = action === 'schedule' ? 'scheduled' : 'sent'
+      return res.status(200).json({ ok: true, status: action === 'schedule' ? 'scheduled' : 'sent', warning: `The broadcast was ${deliveryVerb} by Resend, but its status could not be saved.` })
     }
-    return res.status(200).json({ ok: true, broadcastId: broadcast.id })
+    return res.status(200).json({ ok: true, status: resultFields.status, broadcastId: broadcast.id, scheduledAt })
   } catch (issue) {
-    if (claimed) await updateCampaign(req.headers.authorization, campaignId, { status: 'draft', updated_by: admin.id }).catch(() => {})
+    if (claimed && !broadcastAccepted) await updateCampaign(req.headers.authorization, campaignId, { status: 'draft', updated_by: admin.id }).catch(() => {})
     const message = issue.message || 'The newsletter could not be sent.'
     return res.status(502).json({ error: message })
   }
