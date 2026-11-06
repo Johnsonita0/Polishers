@@ -76,28 +76,30 @@ module.exports = async function handler(req, res) {
   res.setHeader('Allow', 'GET, POST')
   const admin = await verifyAdmin(req.headers.authorization)
   if (!admin) return res.status(401).json({ error: 'Sign in with an active admin account to manage the newsletter.' })
-  if (!resendApiKey || !resendSegmentId) return res.status(503).json({ error: 'Newsletter sending is not configured yet.' })
 
   if (req.method === 'GET') {
     const url = new URL(req.url, 'http://localhost')
     if (url.searchParams.get('action') !== 'subscribers') return res.status(400).json({ error: 'Unknown newsletter action.' })
-    const contactsResponse = await fetch(`https://api.resend.com/segments/${encodeURIComponent(resendSegmentId)}/contacts?limit=100`, {
-      headers: { Authorization: `Bearer ${resendApiKey}` },
+    const subscribersResponse = await fetch(`${supabaseUrl}/rest/v1/newsletter_subscribers?select=email,created_at&order=created_at.desc&limit=1000`, {
+      headers: supabaseHeaders(req.headers.authorization, { Prefer: 'count=exact' }),
     })
-    const contactsResult = await contactsResponse.json().catch(() => ({}))
-    if (!contactsResponse.ok) {
-      console.error('Resend subscriber list failed', { status: contactsResponse.status })
+    const subscribers = await subscribersResponse.json().catch(() => [])
+    if (!subscribersResponse.ok) {
+      console.error('Newsletter subscriber list failed', { status: subscribersResponse.status })
       return res.status(502).json({ error: 'The subscriber list could not be loaded.' })
     }
-    const contacts = (contactsResult.data || []).filter((contact) => !contact.unsubscribed)
+    const contentRange = subscribersResponse.headers.get('content-range') || ''
+    const total = Number(contentRange.split('/').pop())
+    const count = Number.isFinite(total) ? total : subscribers.length
     return res.status(200).json({
-      count: contacts.length,
-      hasMore: Boolean(contactsResult.has_more),
-      subscribers: contacts.slice(0, 20).map(({ email, created_at }) => ({ email, created_at })),
+      count,
+      hasMore: count > subscribers.length,
+      subscribers,
     })
   }
 
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed.' })
+  if (!resendApiKey || !resendSegmentId) return res.status(503).json({ error: 'Newsletter sending is not configured yet.' })
   if (req.body?.action !== 'send' || !req.body?.campaignId) return res.status(400).json({ error: 'A saved campaign is required.' })
 
   let claimed = false

@@ -322,7 +322,7 @@
 .newsletter-subscriber-card .eyebrow { font-size: 8px; }
 .newsletter-subscriber-card > strong { color: #0b295b; font: 700 29px var(--heading); }
 .newsletter-subscriber-card > p { margin: 0; color: #7d8c93; font-size: 9px; }
-.newsletter-subscriber-list { display: grid; gap: 7px; margin-top: 12px; padding-top: 12px; border-top: 1px solid #e9edef; }
+.newsletter-subscriber-list { max-height: 240px; display: grid; align-content: start; gap: 7px; overflow-y: auto; margin-top: 12px; padding: 12px 4px 0 0; border-top: 1px solid #e9edef; }
 .newsletter-subscriber-list > b { margin-bottom: 2px; color: #294354; font-size: 9px; }
 .newsletter-subscriber-list > span { overflow: hidden; color: #687a82; font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
 .newsletter-panel-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }

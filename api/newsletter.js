@@ -1,4 +1,6 @@
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL
+const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY
 
 function escapeHtml(value) {
   return String(value || '').replace(/[&<>"']/g, (character) => ({
@@ -36,6 +38,15 @@ async function resendRequest(path, apiKey, body) {
   return { response, result }
 }
 
+function signupResponse(res, isNewSubscriber, deliveryUnavailable = false) {
+  const message = deliveryUnavailable
+    ? 'Your email has been saved, but email delivery is temporarily unavailable.'
+    : isNewSubscriber
+      ? 'Thanks for subscribing. Your email has been added to our newsletter list.'
+      : 'This email is already subscribed.'
+  return res.status(isNewSubscriber ? 201 : 200).json({ ok: true, alreadySubscribed: !isNewSubscriber, message })
+}
+
 module.exports = async function handler(req, res) {
   res.setHeader('Allow', 'POST')
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed.' })
@@ -44,12 +55,33 @@ module.exports = async function handler(req, res) {
   if (req.body?.website) return res.status(200).json({ ok: true })
   if (email.length > 254 || !emailPattern.test(email)) return res.status(400).json({ error: 'Enter a valid email address.' })
 
+  if (!supabaseUrl || !supabaseAnonKey) {
+    return res.status(503).json({ error: 'Newsletter signups are temporarily unavailable. Please try again later.' })
+  }
+
+  let isNewSubscriber
+  try {
+    const saveResponse = await fetch(`${supabaseUrl}/rest/v1/rpc/subscribe_to_newsletter`, {
+      method: 'POST',
+      headers: { apikey: supabaseAnonKey, Authorization: `Bearer ${supabaseAnonKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ subscriber_email: email }),
+    })
+    isNewSubscriber = await saveResponse.json().catch(() => false)
+    if (!saveResponse.ok) {
+      console.error('Newsletter subscription could not be saved', { status: saveResponse.status })
+      return res.status(502).json({ error: 'We could not save your subscription. Please try again.' })
+    }
+  } catch {
+    console.error('Newsletter subscription could not be saved')
+    return res.status(502).json({ error: 'We could not save your subscription. Please try again.' })
+  }
+
   const apiKey = process.env.RESEND_API_KEY
   const segmentId = process.env.RESEND_SEGMENT_ID || process.env.RESEND_AUDIENCE_ID
   const from = process.env.RESEND_FROM_EMAIL
   const adminEmail = process.env.NEWSLETTER_ADMIN_EMAIL
-  if (!apiKey || !segmentId || !from || !adminEmail) {
-    return res.status(503).json({ error: 'Newsletter signup is not configured yet. Please try again later.' })
+  if (!apiKey || !segmentId) {
+    return signupResponse(res, isNewSubscriber, true)
   }
 
   const siteUrl = (process.env.SITE_URL || 'https://polishers.vercel.app').replace(/\/$/, '')
@@ -71,13 +103,13 @@ module.exports = async function handler(req, res) {
       )
       if (!segmentResponse.ok && segmentResponse.status !== 409) {
         console.error('Existing Resend contact could not be added to newsletter segment', { status: segmentResponse.status })
-        return res.status(502).json({ error: 'We could not save your subscription. Please try again.' })
+        return signupResponse(res, isNewSubscriber, true)
       }
-      return res.status(200).json({ ok: true, alreadySubscribed: true, message: 'This email is already subscribed.' })
+      return signupResponse(res, isNewSubscriber)
     }
     if (!contactResponse.ok) {
       console.error('Newsletter audience request failed', { status: contactResponse.status })
-      return res.status(502).json({ error: 'We could not save your subscription. Please try again.' })
+      return signupResponse(res, isNewSubscriber, true)
     }
 
     const safeEmail = escapeHtml(email)
@@ -98,19 +130,21 @@ module.exports = async function handler(req, res) {
       socialHtml,
     })
 
-    const emails = await Promise.all([
-      resendRequest('/emails', apiKey, { from, to: [email], subject: 'Welcome to Polishers Da Elite', html: subscriberHtml }),
-      resendRequest('/emails', apiKey, { from, to: [adminEmail], subject: 'New Polishers newsletter subscriber', html: adminHtml, reply_to: email }),
-    ])
-    const failedEmail = emails.find(({ response }) => !response.ok)
+    const emails = []
+    if (from) {
+      emails.push(resendRequest('/emails', apiKey, { from, to: [email], subject: 'Welcome to Polishers Da Elite', html: subscriberHtml }))
+      if (adminEmail) emails.push(resendRequest('/emails', apiKey, { from, to: [adminEmail], subject: 'New Polishers newsletter subscriber', html: adminHtml, reply_to: email }))
+    }
+    const emailResults = await Promise.all(emails)
+    const failedEmail = emailResults.find(({ response }) => !response.ok)
     if (failedEmail) {
       console.error('Newsletter email delivery failed', { status: failedEmail.response.status })
-      return res.status(502).json({ error: 'Your email was added, but we could not send the confirmation. Please contact us if you need help.' })
+      return signupResponse(res, isNewSubscriber, true)
     }
 
-    return res.status(201).json({ ok: true, message: 'Thanks for subscribing. Please check your inbox.' })
+    return signupResponse(res, isNewSubscriber)
   } catch {
     console.error('Newsletter service request failed')
-    return res.status(502).json({ error: 'We could not complete your subscription. Please try again later.' })
+    return signupResponse(res, isNewSubscriber, true)
   }
 }

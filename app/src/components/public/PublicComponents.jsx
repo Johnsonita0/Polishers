@@ -5,6 +5,7 @@ import {
 } from 'lucide-react'
 import { Link, NavLink } from 'react-router-dom'
 import { services } from '../../data'
+import { supabase } from '../../supabase'
 import { businessWhatsAppPhone, whatsappHref } from '../../utils/whatsapp'
 
 const serviceIcons = { Home, Building2, Factory, HardHat }
@@ -84,6 +85,24 @@ function NewsletterSignup() {
   const [feedback, setFeedback] = useState(null)
   const emailInputRef = useRef(null)
 
+  async function saveDirectlyToSupabase(subscriberEmail) {
+    if (!supabase) throw new Error('Newsletter signup is not configured. Connect Supabase and try again.')
+    const { data: isNewSubscriber, error } = await supabase.rpc('subscribe_to_newsletter', {
+      subscriber_email: subscriberEmail.trim().toLowerCase(),
+    })
+    if (error) {
+      if (['PGRST202', '42883'].includes(error.code)) {
+        throw new Error('Newsletter storage is not set up yet. Run the latest supabase-schema.sql, then try again.')
+      }
+      throw new Error('We could not save your signup. Check your connection and try again.')
+    }
+    return {
+      message: isNewSubscriber
+        ? 'Thanks for subscribing. Your email has been added to our newsletter list.'
+        : 'This email is already subscribed.',
+    }
+  }
+
   useEffect(() => {
     let timerId
     try {
@@ -131,16 +150,29 @@ function NewsletterSignup() {
 
   async function submit(event) {
     event.preventDefault()
+    if (website) {
+      setFeedback({ type: 'success', message: 'Thanks for subscribing. Your email has been added to our newsletter list.' })
+      return
+    }
     setSubmitting(true)
     setFeedback(null)
     try {
-      const response = await fetch('/api/newsletter', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, website }),
-      })
-      const result = await response.json().catch(() => ({}))
-      if (!response.ok) throw new Error(result.error || 'We could not save your signup. Please try again.')
+      let result
+      try {
+        const response = await fetch('/api/newsletter', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, website }),
+        })
+        const contentType = response.headers.get('content-type') || ''
+        const apiResult = contentType.includes('application/json')
+          ? await response.json().catch(() => null)
+          : null
+        if (response.ok && apiResult?.ok) result = apiResult
+      } catch {
+        // Local Vite does not run Vercel serverless functions.
+      }
+      if (!result) result = await saveDirectlyToSupabase(email)
       setFeedback({ type: 'success', message: result.message || 'Thanks for subscribing. Please check your inbox.' })
       setEmail('')
       rememberDismissal()

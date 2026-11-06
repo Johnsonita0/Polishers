@@ -95,6 +95,36 @@ create table if not exists public.newsletter_campaigns (
   sent_at timestamptz
 );
 
+create table if not exists public.newsletter_subscribers (
+  email text primary key,
+  created_at timestamptz not null default now()
+);
+
+create or replace function public.subscribe_to_newsletter(subscriber_email text)
+returns boolean
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  normalized_email text := lower(btrim(subscriber_email));
+  inserted_count integer;
+begin
+  if normalized_email is null
+    or length(normalized_email) > 254
+    or normalized_email !~ '^[^[:space:]@]+@[^[:space:]@]+\.[^[:space:]@]+$' then
+    raise exception 'Enter a valid email address';
+  end if;
+
+  insert into public.newsletter_subscribers (email)
+  values (normalized_email)
+  on conflict (email) do nothing;
+
+  get diagnostics inserted_count = row_count;
+  return inserted_count = 1;
+end;
+$$;
+
 insert into public.site_content_sections (section, is_managed)
 values
   ('hero', false),
@@ -115,6 +145,8 @@ create unique index if not exists notifications_request_created_unique
   where event_type = 'request_created' and request_id is not null;
 create index if not exists newsletter_campaigns_created_at_idx
   on public.newsletter_campaigns (created_at desc);
+create index if not exists newsletter_subscribers_created_at_idx
+  on public.newsletter_subscribers (created_at desc);
 
 create or replace function public.set_updated_at()
 returns trigger
@@ -245,6 +277,7 @@ alter table public.site_content enable row level security;
 alter table public.notifications enable row level security;
 alter table public.notification_reads enable row level security;
 alter table public.newsletter_campaigns enable row level security;
+alter table public.newsletter_subscribers enable row level security;
 
 drop policy if exists profiles_select_own_or_admin on public.profiles;
 create policy profiles_select_own_or_admin
@@ -327,6 +360,13 @@ create policy newsletter_campaigns_admin_access
   using ((select public.is_active_admin()))
   with check ((select public.is_active_admin()));
 
+drop policy if exists newsletter_subscribers_admin_read on public.newsletter_subscribers;
+create policy newsletter_subscribers_admin_read
+  on public.newsletter_subscribers
+  for select
+  to authenticated
+  using ((select public.is_active_admin()));
+
 grant usage on schema public to anon, authenticated;
 grant select on public.profiles to authenticated;
 grant select, insert, update, delete on public.service_requests to authenticated;
@@ -337,9 +377,12 @@ grant insert, update, delete on public.site_content to authenticated;
 grant select on public.notifications to authenticated;
 grant select, insert, delete on public.notification_reads to authenticated;
 grant select, insert, update, delete on public.newsletter_campaigns to authenticated;
+grant select on public.newsletter_subscribers to authenticated;
 grant usage, select on sequence public.service_request_reference_seq to authenticated;
 grant execute on function public.is_active_admin() to authenticated;
 revoke all on function public.handle_new_auth_user() from public, anon, authenticated;
+revoke all on function public.subscribe_to_newsletter(text) from public;
+grant execute on function public.subscribe_to_newsletter(text) to anon, authenticated;
 revoke all on function public.set_updated_at() from public, anon, authenticated;
 revoke all on function public.capture_request_notification() from public, anon, authenticated;
 
