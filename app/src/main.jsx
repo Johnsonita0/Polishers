@@ -6,6 +6,7 @@ import { ToastProvider } from './components/ui/ToastProvider.jsx'
 import { SiteContentProvider } from './components/ui/SiteContentProvider.jsx'
 import './styles/global.css'
 import './styles/admin.css'
+import './styles/admin-mobile-nav.css'
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>

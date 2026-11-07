@@ -11,4 +11,38 @@
   .admin-sidebar nav a {
     box-sizing: border-box;
   }
+
+  .admin-recent-card .request-table-wrap {
+    overflow-x: visible;
+  }
+
+  .admin-recent-card .request-table {
+    width: 100%;
+    min-width: 0;
+    table-layout: fixed;
+    white-space: normal;
+  }
+
+  .admin-recent-card .request-table th:first-child { width: 68%; }
+  .admin-recent-card .request-table th:nth-child(2) { width: 32%; }
+
+  .admin-recent-card .request-table th:nth-child(n + 3),
+  .admin-recent-card .request-table td:nth-child(n + 3) {
+    display: none;
+  }
+
+  .admin-recent-card .request-table td:first-child {
+    min-width: 0;
+    gap: 7px;
+    padding-inline: 4px;
+  }
+
+  .admin-recent-card .request-client {
+    min-width: 0;
+  }
+
+  .admin-recent-card .request-client b {
+    overflow-wrap: anywhere;
+    white-space: normal;
+  }
 }

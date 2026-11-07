@@ -6,7 +6,6 @@ import {
 import { useToast } from '../ui/ToastProvider'
 import { supabase } from '../../supabase'
 import { friendlyErrorMessage } from '../../utils/friendlyError'
-import '../../styles/admin-mobile-nav.css'
 
 const links = [
   { label: 'Overview', path: '/admin', icon: LayoutDashboard, end: true },
