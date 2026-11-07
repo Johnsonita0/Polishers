@@ -1,0 +1,14 @@
+@media (max-width: 760px) {
+  .admin-sidebar {
+    width: auto;
+  }
+
+  .admin-sidebar nav {
+    box-sizing: border-box;
+    min-width: 0;
+  }
+
+  .admin-sidebar nav a {
+    box-sizing: border-box;
+  }
+}
