@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import {
-  Bell, ChevronDown, FileText, LayoutDashboard, LogOut, Mail, Menu, Settings, Users, X,
+  Bell, ChevronDown, FileText, LayoutDashboard, LogOut, Mail, Menu, MoreHorizontal, Settings, Users, X,
 } from 'lucide-react'
 import { useToast } from '../ui/ToastProvider'
 import { supabase } from '../../supabase'
@@ -19,12 +19,28 @@ export default function AdminLayout() {
   const [profile, setProfile] = useState(null)
   const [error, setError] = useState('')
   const [menuOpen, setMenuOpen] = useState(false)
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false)
   const [unreadNotifications, setUnreadNotifications] = useState(0)
+  const profileMenuRef = useRef(null)
   const location = useLocation()
   const navigate = useNavigate()
   const showToast = useToast()
   const currentPage = links.find(({ path, end }) => end ? location.pathname === path : location.pathname.startsWith(path))
     || (location.pathname === '/admin/notifications' ? { label: 'Notifications' } : null)
+
+  useEffect(() => {
+    if (!profileMenuOpen) return undefined
+    function dismissProfileMenu(event) {
+      if (event.type === 'keydown' && event.key === 'Escape') setProfileMenuOpen(false)
+      if (event.type === 'pointerdown' && !profileMenuRef.current?.contains(event.target)) setProfileMenuOpen(false)
+    }
+    document.addEventListener('keydown', dismissProfileMenu)
+    document.addEventListener('pointerdown', dismissProfileMenu)
+    return () => {
+      document.removeEventListener('keydown', dismissProfileMenu)
+      document.removeEventListener('pointerdown', dismissProfileMenu)
+    }
+  }, [profileMenuOpen])
 
   useEffect(() => {
     let active = true
@@ -113,6 +129,7 @@ export default function AdminLayout() {
   }, [profile])
 
   async function signOut() {
+    setProfileMenuOpen(false)
     try {
       const { error: signOutError } = await supabase.auth.signOut()
       if (signOutError) throw signOutError
@@ -137,7 +154,7 @@ export default function AdminLayout() {
         <div className="admin-sidebar-bottom"><div className="admin-sidebar-help"><span>?</span><div><b>Need a hand?</b><small>Contact your super admin</small></div></div><button onClick={signOut}><LogOut size={17} /> Sign out</button></div>
       </aside>
       <div className="admin-main">
-        <header className="admin-topbar"><button className="admin-menu-toggle" onClick={() => setMenuOpen(!menuOpen)} aria-label={menuOpen ? 'Close menu' : 'Open menu'} aria-expanded={menuOpen}>{menuOpen ? <X /> : <Menu />}</button><div className="admin-breadcrumb">Workspace <span>/</span> <b>{currentPage?.label || 'Dashboard'}</b></div><div className="admin-top-actions"><Link className="admin-notification-link" to="/admin/notifications" aria-label={unreadNotifications ? `Notifications, ${unreadNotifications} unread` : 'Notifications'}><Bell size={18} />{unreadNotifications > 0 && <span className="admin-notification-count">{unreadNotifications > 99 ? '99+' : unreadNotifications}</span>}</Link><div className="admin-user"><span>{(profile.full_name || 'Admin').slice(0, 1).toUpperCase()}</span><div><b>{profile.full_name || 'Admin'}</b><small>{profile.role?.replaceAll('_', ' ') || 'Admin'}</small></div><ChevronDown size={14} /></div></div></header>
+        <header className="admin-topbar"><button className="admin-menu-toggle" onClick={() => setMenuOpen(!menuOpen)} aria-label={menuOpen ? 'Close menu' : 'Open menu'} aria-expanded={menuOpen}>{menuOpen ? <X /> : <Menu />}</button><div className="admin-breadcrumb">Workspace <span>/</span> <b>{currentPage?.label || 'Dashboard'}</b></div><div className="admin-top-actions"><Link className="admin-notification-link" to="/admin/notifications" aria-label={unreadNotifications ? `Notifications, ${unreadNotifications} unread` : 'Notifications'}><Bell size={18} />{unreadNotifications > 0 && <span className="admin-notification-count">{unreadNotifications > 99 ? '99+' : unreadNotifications}</span>}</Link><div className="admin-profile-menu" ref={profileMenuRef}><button className="admin-user-trigger" type="button" aria-label={`Profile menu for ${profile.full_name || 'Admin'}`} aria-controls="admin-profile-popover" aria-expanded={profileMenuOpen} onClick={() => setProfileMenuOpen((open) => !open)}><span>{(profile.full_name || 'Admin').slice(0, 1).toUpperCase()}</span><div><b>{profile.full_name || 'Admin'}</b><small>{profile.role?.replaceAll('_', ' ') || 'Admin'}</small></div><MoreHorizontal size={17} aria-hidden="true" /></button>{profileMenuOpen && <div className="admin-profile-popover" id="admin-profile-popover"><div className="admin-profile-summary"><b>{profile.full_name || 'Admin'}</b><small>{profile.role?.replaceAll('_', ' ') || 'Admin'}</small></div><button type="button" onClick={signOut}><LogOut size={16} /> Sign out</button></div>}</div></div></header>
         <main className="admin-content"><Outlet context={{ profile }} /></main>
       </div>
     </div>

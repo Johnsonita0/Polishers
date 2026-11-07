@@ -7,6 +7,7 @@ import { SiteContentProvider } from './components/ui/SiteContentProvider.jsx'
 import './styles/global.css'
 import './styles/admin.css'
 import './styles/admin-mobile-nav.css'
+import './styles/admin-profile-menu.css'
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
