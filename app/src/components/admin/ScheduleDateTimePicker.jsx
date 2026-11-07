@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { CalendarDays, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Clock, X } from 'lucide-react'
+import { CalendarDays, Clock, Minus, Plus, X } from 'lucide-react'
 
 function dateTimeValue(date) {
   const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60_000)
@@ -111,13 +111,12 @@ export default function ScheduleDateTimePicker({ value, onChange, disabled = fal
       >
         <CalendarDays size={16} />
         <span>{hasSelection ? formatSelectedDate(selectedDate) : 'Choose date and time'}</span>
-        <ChevronDown size={15} />
       </button>
       {isOpen && <div className="schedule-picker-popover" role="dialog" aria-label="Schedule newsletter delivery">
         <div className="schedule-picker-month">
-          <button type="button" aria-label="Previous month" onClick={() => changeMonth(-1)}><ChevronLeft size={17} /></button>
+          <button type="button" aria-label="Previous month" onClick={() => changeMonth(-1)}>Prev</button>
           <strong>{visibleMonth.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })}</strong>
-          <button type="button" aria-label="Next month" onClick={() => changeMonth(1)}><ChevronRight size={17} /></button>
+          <button type="button" aria-label="Next month" onClick={() => changeMonth(1)}>Next</button>
           <button className="schedule-picker-close" type="button" aria-label="Close calendar" onClick={() => setIsOpen(false)}><X size={15} /></button>
         </div>
         <div className="schedule-picker-weekdays" aria-hidden="true">
@@ -149,16 +148,16 @@ export default function ScheduleDateTimePicker({ value, onChange, disabled = fal
           <div className="schedule-picker-time-controls">
             <div className="schedule-time-stepper">
               <span>Hour</span>
-              <button type="button" aria-label="Earlier hour" onClick={() => adjustTime('hour', -1)} disabled={!hasSelection || disabled}><ChevronDown size={15} /></button>
+              <button type="button" aria-label="Decrease hour" onClick={() => adjustTime('hour', -1)} disabled={!hasSelection || disabled}><Minus size={14} /></button>
               <output>{String(twelveHour).padStart(2, '0')}</output>
-              <button type="button" aria-label="Later hour" onClick={() => adjustTime('hour', 1)} disabled={!hasSelection || disabled}><ChevronUp size={15} /></button>
+              <button type="button" aria-label="Increase hour" onClick={() => adjustTime('hour', 1)} disabled={!hasSelection || disabled}><Plus size={14} /></button>
             </div>
             <span className="schedule-time-separator">:</span>
             <div className="schedule-time-stepper">
               <span>Minute</span>
-              <button type="button" aria-label="Earlier minute" onClick={() => adjustTime('minute', -1)} disabled={!hasSelection || disabled}><ChevronDown size={15} /></button>
+              <button type="button" aria-label="Decrease minute" onClick={() => adjustTime('minute', -1)} disabled={!hasSelection || disabled}><Minus size={14} /></button>
               <output>{String(minute).padStart(2, '0')}</output>
-              <button type="button" aria-label="Later minute" onClick={() => adjustTime('minute', 1)} disabled={!hasSelection || disabled}><ChevronUp size={15} /></button>
+              <button type="button" aria-label="Increase minute" onClick={() => adjustTime('minute', 1)} disabled={!hasSelection || disabled}><Plus size={14} /></button>
             </div>
             <div className="schedule-time-period" role="group" aria-label="AM or PM">
               {['AM', 'PM'].map((option) => <button key={option} type="button" className={period === option ? 'is-active' : ''} aria-pressed={period === option} onClick={() => setPeriod(option)} disabled={!hasSelection || disabled}>{option}</button>)}

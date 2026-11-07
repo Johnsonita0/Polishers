@@ -1,0 +1,28 @@
+a svg[class*="lucide-arrow-"],
+button svg[class*="lucide-arrow-"],
+button svg[class*="lucide-chevron-"],
+button.request-expand-button > svg,
+button.request-mobile-summary > svg.request-expand-icon {
+  display: none !important;
+}
+
+.round-control {
+  min-width: 46px;
+  padding-inline: 5px;
+  font-size: 8px;
+  font-weight: 700;
+}
+
+.request-expand-button::before,
+.request-mobile-summary::after {
+  color: #087f88;
+  content: '+';
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.request-expand-button[aria-expanded='true']::before,
+.request-mobile-summary[aria-expanded='true']::after {
+  content: '\2212';
+}

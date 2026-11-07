@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { ArrowLeft, ArrowRight, Eye, EyeOff, ShieldCheck } from 'lucide-react'
+import { Eye, EyeOff, ShieldCheck } from 'lucide-react'
 import { useToast } from '../../components/ui/ToastProvider'
 import { supabase, supabaseConfigured } from '../../supabase'
 import { friendlyErrorMessage } from '../../utils/friendlyError'
@@ -79,7 +79,7 @@ export default function AdminLogin() {
           <Link className="login-brand" to="/">
             <img src={`${import.meta.env.BASE_URL}Polishers%20DA%20Elite%20Logo.png`} alt="Polishers Da Elite" />
           </Link>
-          <Link className="login-back" to="/"><ArrowLeft size={15} /> Back to website</Link>
+          <Link className="login-back" to="/">Back to website</Link>
         </div>
         <div className="login-form-wrap">
           <span className="login-icon"><ShieldCheck size={23} /></span>
@@ -90,7 +90,7 @@ export default function AdminLogin() {
             <label>Email address<input type="email" autoComplete="username" required value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@example.com" /></label>
             <label>Password<span className="password-wrap"><input type={showPassword ? 'text' : 'password'} autoComplete="current-password" required value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Your password" /><button type="button" onClick={() => setShowPassword(!showPassword)} aria-label={showPassword ? 'Hide password' : 'Show password'}>{showPassword ? <EyeOff size={17} /> : <Eye size={17} />}</button></span></label>
             {error && <p className="form-error">{error}</p>}
-            <button className="button button-dark button-large" type="submit" disabled={busy}>{busy ? 'Signing in…' : 'Sign in'}{!busy && <ArrowRight size={16} />}</button>
+            <button className="button button-dark button-large" type="submit" disabled={busy}>{busy ? 'Signing in…' : 'Sign in'}</button>
           </form>
           <small className="login-no-signup">Team access is by invitation only. <a href="mailto:polishersdaelit@gmail.com">Need help?</a></small>
         </div>

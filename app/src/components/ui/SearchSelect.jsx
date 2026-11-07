@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { ChevronDown, Search } from 'lucide-react'
+import { Search } from 'lucide-react'
 
 export default function SearchSelect({ value, onChange, options, placeholder = 'Select an option', className = '' }) {
   const containerRef = useRef(null)
@@ -29,7 +29,6 @@ export default function SearchSelect({ value, onChange, options, placeholder = '
     <div className={`custom-select ${className} ${isOpen ? 'is-open' : ''}`} ref={containerRef}>
       <button type="button" className="custom-select-trigger" onClick={() => setIsOpen((open) => !open)} aria-expanded={isOpen} aria-haspopup="listbox">
         <span>{selectedOption ? selectedOption.label : placeholder}</span>
-        <ChevronDown size={16} />
       </button>
 
       {isOpen && (

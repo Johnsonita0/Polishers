@@ -6,30 +6,32 @@
   display: flex;
   align-items: center;
   gap: 9px;
-  padding: 3px 0;
-  border: 0;
-  color: inherit;
-  background: transparent;
-  text-align: left;
-  cursor: pointer;
 }
 
-.admin-user-trigger > span {
+.admin-user-avatar {
   width: 32px;
   height: 32px;
   display: grid;
   flex: 0 0 auto;
   place-items: center;
+  padding: 0;
+  border: 0;
   border-radius: 50%;
   color: var(--navy);
   background: #dff3f1;
   font-size: 11px;
   font-weight: 700;
+  cursor: pointer;
 }
 
-.admin-user-trigger > div {
+.admin-user-details {
   display: grid;
   gap: 3px;
+}
+
+.admin-user-avatar:focus-visible {
+  outline: 2px solid #148d94;
+  outline-offset: 3px;
 }
 
 .admin-user-trigger b {
@@ -43,13 +45,8 @@
   text-transform: capitalize;
 }
 
-.admin-user-trigger > svg {
-  color: #73848c;
-}
-
-.admin-user-trigger:focus-visible {
-  outline: 2px solid #148d94;
-  outline-offset: 3px;
+.admin-profile-menu {
+  position: relative;
 }
 
 .admin-profile-popover {
@@ -115,17 +112,12 @@
     gap: 5px;
   }
 
-  .admin-user-trigger > span {
+  .admin-user-avatar {
     width: 30px;
     height: 30px;
   }
 
-  .admin-user-trigger > div {
+  .admin-user-details {
     display: none;
-  }
-
-  .admin-user-trigger > svg {
-    width: 14px;
-    height: 14px;
   }
 }

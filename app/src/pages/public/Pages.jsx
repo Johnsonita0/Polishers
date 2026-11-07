@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import {
-  ArrowLeft, ArrowRight, ArrowUpRight, Building2, Check, CheckCircle2,
-  ChevronDown, ChevronRight, Factory, HardHat, Home, Image, Mail, MapPin,
-  MessageCircle, Pause, Phone, Play, ShieldCheck, Sparkles, Star, X,
+  ArrowRight, ArrowUpRight, Building2, Check, CheckCircle2, ChevronRight,
+  Factory, HardHat, Home, Image, Mail, MapPin, MessageCircle, Minus, Pause,
+  Phone, Play, Plus, ShieldCheck, Sparkles, Star, X,
 } from 'lucide-react'
 import {
   Link, useLocation, useNavigate, useParams, useSearchParams,
@@ -255,7 +255,7 @@ export function HomePage() {
             {homeFaqs.map((item, index) => <article className="home-faq-item" key={item.question}>
               <h3>
                 <button type="button" aria-expanded={openFaq === index} aria-controls={`home-faq-answer-${index}`} onClick={() => setOpenFaq((current) => current === index ? -1 : index)}>
-                  <span>{item.question}</span><ChevronDown size={18} aria-hidden="true" />
+                  <span>{item.question}</span>{openFaq === index ? <Minus size={18} aria-hidden="true" /> : <Plus size={18} aria-hidden="true" />}
                 </button>
               </h3>
               {openFaq === index && <div className="home-faq-answer" id={`home-faq-answer-${index}`}><p>{item.answer}</p></div>}
@@ -279,9 +279,9 @@ export function HomePage() {
                 </> : <p>No testimonials have been published yet.</p>}
               </article>
               {homeTestimonials.length > 1 && <div className="home-testimonial-controls">
-                <button className="round-control" type="button" aria-label="Previous testimonial" onClick={() => setTestimonialIndex((current) => (current - 1 + homeTestimonials.length) % homeTestimonials.length)}><ArrowLeft size={16} /></button>
+                <button className="round-control" type="button" aria-label="Previous testimonial" onClick={() => setTestimonialIndex((current) => (current - 1 + homeTestimonials.length) % homeTestimonials.length)}>Prev</button>
                 <span>{testimonialIndex + 1}<i>/</i>{homeTestimonials.length}</span>
-                <button className="round-control" type="button" aria-label="Next testimonial" onClick={() => setTestimonialIndex((current) => (current + 1) % homeTestimonials.length)}><ArrowRight size={16} /></button>
+                <button className="round-control" type="button" aria-label="Next testimonial" onClick={() => setTestimonialIndex((current) => (current + 1) % homeTestimonials.length)}>Next</button>
               </div>}
             </div>
             <form className="home-testimonial-form" onSubmit={submitTestimonial}>
