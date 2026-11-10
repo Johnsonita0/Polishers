@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import {
-  ArrowRight, ArrowUpRight, Building2, Check, CheckCircle2, ChevronRight,
+  ArrowLeft, ArrowRight, ArrowUpRight, Building2, Check, CheckCircle2, ChevronRight,
   Factory, HardHat, Home, Image, Mail, MapPin, MessageCircle, Minus, Pause,
   Phone, Play, Plus, ShieldCheck, Sparkles, Star, X,
 } from 'lucide-react'
