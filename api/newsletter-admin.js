@@ -172,6 +172,8 @@ module.exports = async function handler(req, res) {
 
     if (campaign.status !== 'draft') return res.status(409).json({ error: 'This campaign has already been sent or is currently sending.' })
     if (!campaign.title?.trim() || !campaign.subject?.trim() || !campaign.body?.trim()) return res.status(400).json({ error: 'Add a title, subject, and message before sending.' })
+    const subject = campaign.subject.replace(/\[test\]/ig, '').replace(/\s{2,}/g, ' ').trim()
+    if (!subject) return res.status(400).json({ error: 'Add a subject other than the test marker before sending.' })
 
     let scheduledAt = null
     if (action === 'schedule') {
@@ -199,7 +201,7 @@ module.exports = async function handler(req, res) {
       body: JSON.stringify({
         segment_id: resendSegmentId,
         from,
-        subject: campaign.subject,
+        subject,
         html: campaignEmailHtml(campaign),
         text: `${campaign.title}\n\n${campaign.body}${campaign.cta_url ? `\n\n${campaign.cta_label || 'Learn more'}: ${campaign.cta_url}` : ''}\n\nUnsubscribe: {{{RESEND_UNSUBSCRIBE_URL}}}`,
         name: campaign.title,
