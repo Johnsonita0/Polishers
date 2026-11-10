@@ -26,7 +26,7 @@ const newsletterTemplates = [
     preheader: 'A few thoughtful changes can make your space feel new again.',
     body: 'A clean, comfortable space can change the way your day feels.\n\nWhether you are refreshing your home or preparing a workspace, our team is here to help you make it feel its best.\n\nTell us what you need, and we will help you find the right cleaning service.',
     cta_label: 'Explore our services',
-    cta_url: 'https://polishersdaelit.com.ng/services',
+    cta_url: 'https://www.polishersdaelit.com.ng/services',
   },
   {
     id: 'cleaning-tips',
@@ -36,7 +36,7 @@ const newsletterTemplates = [
     preheader: 'Easy routines that make everyday cleaning more manageable.',
     body: 'A little consistency goes a long way. Try these simple habits to keep your space comfortable between deep cleans:\n\n1. Clear and wipe frequently used surfaces at the end of the day.\n2. Let fresh air circulate when the weather allows.\n3. Give high-touch areas a regular clean.\n\nWhen you need extra help, Polishers Da Elite is ready to take care of the details.',
     cta_label: 'See cleaning services',
-    cta_url: 'https://polishersdaelit.com.ng/services',
+    cta_url: 'https://www.polishersdaelit.com.ng/services',
   },
   {
     id: 'service-update',
@@ -46,7 +46,7 @@ const newsletterTemplates = [
     preheader: 'Get in touch with our team to plan your next clean.',
     body: 'We are here to help homes and businesses across Lagos feel cleaner and more welcoming.\n\nFrom a one-time refresh to ongoing care, tell us about your space and what you have in mind. Our team will be happy to help you plan the next step.',
     cta_label: 'Request a service',
-    cta_url: 'https://polishersdaelit.com.ng/contact',
+    cta_url: 'https://www.polishersdaelit.com.ng/contact',
   },
 ]
 const allowedImages = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' }
@@ -353,7 +353,7 @@ export default function NewsletterAdmin() {
           <label className="newsletter-field">Preview text<input maxLength={180} value={draft.preheader || ''} onChange={(event) => updateDraft('preheader', event.target.value)} disabled={draft.status !== 'draft'} placeholder="A short line shown beside the subject" /></label>
           <label className="newsletter-field">Message<textarea required rows={8} maxLength={10000} value={draft.body} onChange={(event) => updateDraft('body', event.target.value)} disabled={draft.status !== 'draft'} placeholder="Write your newsletter message. Separate paragraphs with a blank line." /></label>
           <div className="newsletter-field"><span>Campaign image</span><div className="newsletter-image-upload">{draft.image_url ? <img src={draft.image_url} alt="Newsletter campaign" /> : <span className="newsletter-image-empty"><ImageIcon size={20} />No image uploaded</span>}<label className="newsletter-upload-button"><Upload size={15} />{uploading ? 'Uploading…' : draft.image_url ? 'Replace image' : 'Upload image'}<input type="file" accept="image/jpeg,image/png,image/webp" onChange={uploadImage} disabled={uploading || draft.status !== 'draft' || !supabaseConfigured} /></label>{draft.image_url && draft.status === 'draft' && <button type="button" className="content-icon-action is-danger" onClick={() => updateDraft('image_url', '')}>Remove image</button>}</div><small>JPG, PNG, or WebP up to 10 MB. Image is public so email clients can display it.</small></div>
-          <div className="newsletter-cta-fields"><label className="newsletter-field">Button label<input maxLength={50} value={draft.cta_label || ''} onChange={(event) => updateDraft('cta_label', event.target.value)} disabled={draft.status !== 'draft'} placeholder="Explore our services" /></label><label className="newsletter-field">Button URL<input type="url" value={draft.cta_url || ''} onChange={(event) => updateDraft('cta_url', event.target.value)} disabled={draft.status !== 'draft'} placeholder="https://polishersdaelit.com.ng/services" /></label></div>
+          <div className="newsletter-cta-fields"><label className="newsletter-field">Button label<input maxLength={50} value={draft.cta_label || ''} onChange={(event) => updateDraft('cta_label', event.target.value)} disabled={draft.status !== 'draft'} placeholder="Explore our services" /></label><label className="newsletter-field">Button URL<input type="url" value={draft.cta_url || ''} onChange={(event) => updateDraft('cta_url', event.target.value)} disabled={draft.status !== 'draft'} placeholder="https://www.polishersdaelit.com.ng/services" /></label></div>
           <div className="newsletter-editor-actions">{draft.status === 'draft' && <><button className="button button-quiet" type="button" onClick={() => { setDraft({ ...emptyCampaign }); setSelectedTemplate(''); setScheduleAt('') }}>New draft</button><button className="button button-dark" type="submit" disabled={saving || uploading}><Save size={15} />{saving ? 'Saving…' : 'Save draft'}</button><button className="button button-aqua" type="button" onClick={sendCampaign} disabled={!draft.id || !subscriberCount || saving || sending}>{sending ? 'Sending…' : <><Send size={15} /> Send now</>}</button></>}</div>
         </form>
       </Card>

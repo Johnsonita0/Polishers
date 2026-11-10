@@ -22,7 +22,7 @@ import {
 } from './pages/public/Pages'
 import { services } from './data'
 
-const canonicalOrigin = 'https://polishersdaelit.com.ng'
+const canonicalOrigin = 'https://www.polishersdaelit.com.ng'
 const pageMetadata = {
   '/': { title: 'Professional Cleaning Services in Lagos | Polishers Da Elite', description: 'Premium residential, commercial, industrial and post-construction cleaning across Lagos. Request a free quote from Polishers Da Elite.' },
   '/services': { title: 'Cleaning Services in Lagos | Polishers Da Elite', description: 'Explore residential, commercial, industrial and post-construction cleaning services from Polishers Da Elite in Lagos.' },
