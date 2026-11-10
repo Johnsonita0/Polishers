@@ -3,7 +3,7 @@ import {
   ArrowUpRight, Building2, ChevronLeft, ChevronRight, Facebook, Factory, HardHat,
   Home, Image, Instagram, Linkedin, MessageCircle, Phone, Plus, Sparkles, X,
 } from 'lucide-react'
-import { Link, NavLink } from 'react-router-dom'
+import { Link, NavLink, useLocation } from 'react-router-dom'
 import { services } from '../../data'
 import { supabase } from '../../supabase'
 import { businessWhatsAppPhone, whatsappHref } from '../../utils/whatsapp'
@@ -78,12 +78,17 @@ export function PublicLayout({ children }) {
 }
 
 function NewsletterSignup() {
+  const location = useLocation()
   const [isOpen, setIsOpen] = useState(false)
   const [email, setEmail] = useState('')
   const [website, setWebsite] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [feedback, setFeedback] = useState(null)
   const emailInputRef = useRef(null)
+
+  useEffect(() => {
+    if (new URLSearchParams(location.search).get('newsletter') === '1') setIsOpen(true)
+  }, [location.search])
 
   async function saveDirectlyToSupabase(subscriberEmail) {
     if (!supabase) throw new Error('Newsletter signup is not configured. Connect Supabase and try again.')
@@ -105,12 +110,14 @@ function NewsletterSignup() {
 
   useEffect(() => {
     let timerId
-    try {
-      if (!window.sessionStorage.getItem('polishers-newsletter-dismissed')) {
+    if (!['/quote', '/quote/success'].includes(location.pathname)) {
+      try {
+        if (!window.sessionStorage.getItem('polishers-newsletter-dismissed')) {
+          timerId = window.setTimeout(() => setIsOpen(true), 5000)
+        }
+      } catch {
         timerId = window.setTimeout(() => setIsOpen(true), 5000)
       }
-    } catch {
-      timerId = window.setTimeout(() => setIsOpen(true), 5000)
     }
     const openFromFooter = () => setIsOpen(true)
     window.addEventListener('open-newsletter', openFromFooter)
@@ -118,7 +125,7 @@ function NewsletterSignup() {
       window.clearTimeout(timerId)
       window.removeEventListener('open-newsletter', openFromFooter)
     }
-  }, [])
+  }, [location.pathname])
 
   useEffect(() => {
     if (!isOpen) return undefined

@@ -75,7 +75,11 @@ module.exports = async function handler(req, res) {
 
   const siteUrl = (process.env.SITE_URL || 'https://www.polishersdaelit.com.ng').replace(/\/$/, '')
   const logoUrl = `${siteUrl}/Polishers%20DA%20Elite%20Logo.png`
-  const socialHtml = socialLinksHtml()
+  const socialHtml = socialLinksHtml({ siteUrl })
+  const subscriberSocialHtml = socialLinksHtml({
+    siteUrl,
+    unsubscribeHref: 'mailto:polishersdaelit@gmail.com?subject=Unsubscribe%20from%20Polishers%20Da%20Elite',
+  })
 
   try {
     const { response: contactResponse } = await resendRequest(
@@ -108,7 +112,7 @@ module.exports = async function handler(req, res) {
       detail: 'Whenever you need a hand with your space, simply reply to this email or reach us on WhatsApp. We’re happy to help.',
       siteUrl,
       logoUrl,
-      socialHtml,
+      socialHtml: subscriberSocialHtml,
     })
     const adminHtml = emailTemplate({
       title: 'A new newsletter subscriber',
