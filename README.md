@@ -10,6 +10,7 @@ Configure these environment variables in Vercel for Production and Preview:
 - `RESEND_SEGMENT_ID`: ID of the Resend Segment used for campaign broadcasts. Resend has replaced Audiences with Segments.
 - `RESEND_FROM_EMAIL`: sender address on a domain verified with Resend, for example `Polishers Da Elite <newsletter@yourdomain.com>`. Required for welcome emails and campaign sending.
 - `NEWSLETTER_ADMIN_EMAIL`: optional address that receives new-subscriber notifications.
+- `QUOTE_ADMIN_EMAIL`: address that receives new service and quote request alerts. Defaults to `polishersdaelit@gmail.com`.
 - `SITE_URL`: canonical site URL used for email links and the logo.
 - `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`: required by the admin serverless API to verify the signed-in administrator. These are also used by the browser app; never put a Supabase service-role key in the frontend.
 - `VITE_INSTAGRAM_URL`: optional public Instagram profile URL used in the site and email footers.
@@ -17,3 +18,5 @@ Configure these environment variables in Vercel for Production and Preview:
 - `VITE_LINKEDIN_URL`: optional public LinkedIn company page used in the site and email footers.
 
 Run the latest `supabase-schema.sql` to create the subscriber and campaign tables, signup RPC, and newsletter image bucket. Newsletter signups require `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`; the subscriber list is kept in Supabase independently of Resend. Create a Resend Segment and set its ID as `RESEND_SEGMENT_ID` to sync new signups and enable campaign sending. Copy `.env.example` as a reference when configuring the project, set real values in the Vercel project settings, then redeploy. The Resend sender domain must be verified before email delivery will work. Social icons are visible in the footer; set the profile URL variables to activate their links.
+
+Public quote and contact requests are saved through the `submit_request` RPC and notify `QUOTE_ADMIN_EMAIL` (or `NEWSLETTER_ADMIN_EMAIL`) through Resend when `RESEND_API_KEY` and `RESEND_FROM_EMAIL` are configured. Email delivery failures do not prevent the saved request from being accepted.

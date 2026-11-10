@@ -50,6 +50,11 @@ const newsletterTemplates = [
   },
 ]
 const allowedImages = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' }
+const newsletterSocialLinks = [
+  { label: 'Instagram', icon: 'IG', href: import.meta.env.VITE_INSTAGRAM_URL },
+  { label: 'Facebook', icon: 'f', href: import.meta.env.VITE_FACEBOOK_URL },
+  { label: 'LinkedIn', icon: 'in', href: import.meta.env.VITE_LINKEDIN_URL },
+]
 
 function formatDate(value) {
   return value ? new Date(value).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'Draft'
@@ -357,7 +362,7 @@ export default function NewsletterAdmin() {
           <div className="newsletter-editor-actions">{draft.status === 'draft' && <><button className="button button-quiet" type="button" onClick={() => { setDraft({ ...emptyCampaign }); setSelectedTemplate(''); setScheduleAt('') }}>New draft</button><button className="button button-dark" type="submit" disabled={saving || uploading}><Save size={15} />{saving ? 'Saving…' : 'Save draft'}</button><button className="button button-aqua" type="button" onClick={sendCampaign} disabled={!draft.id || !subscriberCount || saving || sending}>{sending ? 'Sending…' : <><Send size={15} /> Send now</>}</button></>}</div>
         </form>
       </Card>
-      <Card className="newsletter-preview-card"><div className="newsletter-panel-heading"><div><span className="eyebrow">EMAIL PREVIEW</span><h2>{draft.subject || 'Your subject line'}</h2></div><Eye size={16} /></div><div className="newsletter-preview"><header><img src={`${import.meta.env.BASE_URL}Polishers%20DA%20Elite%20Logo.png`} alt="Polishers Da Elite" /></header>{draft.preheader && <small className="newsletter-preview-preheader">{draft.preheader}</small>}<div className="newsletter-preview-body"><span className="eyebrow">POLISHERS DA ELITE</span><h3>{draft.title || 'Your newsletter headline'}</h3>{draft.image_url && <img className="newsletter-preview-image" src={draft.image_url} alt="Newsletter preview" />}<p style={{ whiteSpace: 'pre-line' }}>{previewHtml}</p>{draft.cta_label && <span className="newsletter-preview-cta">{draft.cta_label}</span>}</div><footer><b>Polishers Da Elite Cleaning Services</b><span>Lagos, Nigeria · +234 809 538 9606</span><small>Unsubscribe from these updates at any time.</small></footer></div></Card>
+      <Card className="newsletter-preview-card"><div className="newsletter-panel-heading"><div><span className="eyebrow">EMAIL PREVIEW</span><h2>{draft.subject || 'Your subject line'}</h2></div><Eye size={16} /></div><div className="newsletter-preview"><header><img src={`${import.meta.env.BASE_URL}Polishers%20DA%20Elite%20Logo.png`} alt="Polishers Da Elite" /></header>{draft.preheader && <small className="newsletter-preview-preheader">{draft.preheader}</small>}<div className="newsletter-preview-body"><span className="eyebrow">POLISHERS DA ELITE</span><h3>{draft.title || 'Your newsletter headline'}</h3>{draft.image_url && <img className="newsletter-preview-image" src={draft.image_url} alt="Newsletter preview" />}<p style={{ whiteSpace: 'pre-line' }}>{previewHtml}</p>{draft.cta_label && <span className="newsletter-preview-cta">{draft.cta_label}</span>}</div><footer><b>Polishers Da Elite Cleaning Services</b><span>Lagos, Nigeria · +234 809 538 9606</span><div className="newsletter-preview-socials">{newsletterSocialLinks.map((link) => { const IconTag = link.href ? 'a' : 'span'; return <IconTag href={link.href || undefined} aria-label={link.label} key={link.label}><span>{link.icon}</span>{link.label}</IconTag> })}</div><small>Unsubscribe from these updates at any time.</small></footer></div></Card>
     </div>}
   </section>
 }

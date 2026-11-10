@@ -1,6 +1,7 @@
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL
 const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY
+const socialLinksHtml = require('./email-socials')
 
 function escapeHtml(value) {
   return String(value || '').replace(/[&<>"']/g, (character) => ({
@@ -10,18 +11,6 @@ function escapeHtml(value) {
     '"': '&quot;',
     "'": '&#39;',
   })[character])
-}
-
-function socialLinks() {
-  return [
-    ['Instagram', process.env.VITE_INSTAGRAM_URL, 'IG'],
-    ['Facebook', process.env.VITE_FACEBOOK_URL, 'f'],
-    ['LinkedIn', process.env.VITE_LINKEDIN_URL, 'in'],
-  ].map(([name, url, icon]) => {
-    const tag = url ? 'a' : 'span'
-    const href = url ? ` href="${escapeHtml(url)}"` : ''
-    return `<${tag}${href} aria-label="${name}" style="display:inline-block;width:28px;height:28px;margin-right:8px;border:1px solid #71879a;border-radius:50%;color:#ffffff;text-align:center;text-decoration:none;font-family:Arial,sans-serif;font-size:11px;font-weight:bold;line-height:28px">${icon}</${tag}>`
-  }).join('')
 }
 
 function emailTemplate({ title, intro, detail, siteUrl, logoUrl, socialHtml }) {
@@ -84,9 +73,9 @@ module.exports = async function handler(req, res) {
     return signupResponse(res, isNewSubscriber, true)
   }
 
-  const siteUrl = (process.env.SITE_URL || 'https://polishers.vercel.app').replace(/\/$/, '')
+  const siteUrl = (process.env.SITE_URL || 'https://www.polishersdaelit.com.ng').replace(/\/$/, '')
   const logoUrl = `${siteUrl}/Polishers%20DA%20Elite%20Logo.png`
-  const socialHtml = socialLinks()
+  const socialHtml = socialLinksHtml()
 
   try {
     const { response: contactResponse } = await resendRequest(

@@ -119,6 +119,34 @@
   font-size: 11px;
 }
 
+.newsletter-preview-socials {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  margin-top: 13px;
+}
+
+.newsletter-preview-socials a {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #dce7ec;
+  font-size: 9px;
+  text-decoration: none;
+}
+
+.newsletter-preview-socials a > span {
+  width: 23px;
+  height: 23px;
+  display: grid;
+  place-items: center;
+  border: 1px solid #71879a;
+  border-radius: 50%;
+  color: #fff;
+  font-size: 8px;
+  font-weight: 700;
+}
+
 @media (max-width: 760px) {
   .schedule-picker-popover { width: min(340px, calc(100vw - 56px)); }
   .schedule-picker-time-controls { gap: 5px; }

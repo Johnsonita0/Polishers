@@ -379,6 +379,16 @@ function saveLocalRequest(payload) {
 
 async function saveRequest(payload) {
   if (!supabaseConfigured) return saveLocalRequest(payload)
+  if (!import.meta.env.DEV) {
+    const response = await fetch('/api/service-request', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    })
+    const result = await response.json().catch(() => ({}))
+    if (!response.ok) throw new Error(result.error || 'The request could not be saved.')
+    return { ...payload, reference: result.reference }
+  }
   const { data, error } = await supabase.rpc('submit_request', { request_data: payload })
   if (error) throw error
   const row = Array.isArray(data) ? data[0] : data
