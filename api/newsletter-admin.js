@@ -42,7 +42,7 @@ function safeHttpUrl(value) {
 }
 
 function campaignEmailHtml(campaign) {
-  const siteUrl = (process.env.SITE_URL || 'https://polishers.vercel.app').replace(/\/$/, '')
+  const siteUrl = (process.env.SITE_URL || 'https://polishersdaelit.com.ng').replace(/\/$/, '')
   const logoUrl = `${siteUrl}/Polishers%20DA%20Elite%20Logo.png`
   const title = emailEscape(campaign.title)
   const preheader = emailEscape(campaign.preheader)

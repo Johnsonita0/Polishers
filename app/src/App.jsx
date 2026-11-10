@@ -1,4 +1,4 @@
-import { useLayoutEffect } from 'react'
+import { useEffect, useLayoutEffect } from 'react'
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import AdminLayout from './components/layout/AdminLayout'
 import Dashboard from './pages/admin/Dashboard'
@@ -20,6 +20,68 @@ import {
   ServicesPage,
   TermsPage,
 } from './pages/public/Pages'
+import { services } from './data'
+
+const canonicalOrigin = 'https://polishersdaelit.com.ng'
+const pageMetadata = {
+  '/': { title: 'Professional Cleaning Services in Lagos | Polishers Da Elite', description: 'Premium residential, commercial, industrial and post-construction cleaning across Lagos. Request a free quote from Polishers Da Elite.' },
+  '/services': { title: 'Cleaning Services in Lagos | Polishers Da Elite', description: 'Explore residential, commercial, industrial and post-construction cleaning services from Polishers Da Elite in Lagos.' },
+  '/gallery': { title: 'Our Cleaning Work | Polishers Da Elite', description: 'See recent residential, commercial and industrial cleaning work by the Polishers Da Elite team in Lagos.' },
+  '/about': { title: 'About Us | Polishers Da Elite', description: 'Learn about Polishers Da Elite and our professional cleaning team serving homes and businesses across Lagos.' },
+  '/contact': { title: 'Contact Polishers Da Elite | Cleaning in Lagos', description: 'Contact Polishers Da Elite to discuss cleaning services, availability and a free quote in Lagos.' },
+  '/privacy': { title: 'Privacy Policy | Polishers Da Elite', description: 'Read the Polishers Da Elite privacy policy and learn how we handle information submitted through our website.' },
+  '/terms': { title: 'Terms of Service | Polishers Da Elite', description: 'Review the terms for using the Polishers Da Elite website and requesting cleaning services.' },
+}
+
+function setMeta(attribute, name, content) {
+  let element = document.head.querySelector(`meta[${attribute}="${name}"]`)
+  if (!element) {
+    element = document.createElement('meta')
+    element.setAttribute(attribute, name)
+    document.head.append(element)
+  }
+  element.setAttribute('content', content)
+}
+
+function RouteSeo() {
+  const location = useLocation()
+
+  useEffect(() => {
+    const path = location.pathname.replace(/\/+$/, '') || '/'
+    const service = path.startsWith('/services/')
+      ? services.find((item) => item.slug === path.slice('/services/'.length))
+      : null
+    const metadata = service
+      ? { title: `${service.title} Cleaning in Lagos | Polishers Da Elite`, description: service.description }
+      : pageMetadata[path]
+    const isPrivate = path.startsWith('/admin') || path.startsWith('/quote') || !metadata
+    const title = metadata?.title || 'Page Not Found | Polishers Da Elite'
+    const description = metadata?.description || 'The page you requested could not be found.'
+
+    document.title = title
+    setMeta('name', 'description', description)
+    setMeta('name', 'robots', isPrivate ? 'noindex, nofollow' : 'index, follow')
+    setMeta('property', 'og:title', title)
+    setMeta('property', 'og:description', description)
+    setMeta('property', 'og:url', `${canonicalOrigin}${path}`)
+    setMeta('name', 'twitter:title', title)
+    setMeta('name', 'twitter:description', description)
+
+    let canonical = document.head.querySelector('link[rel="canonical"]')
+    if (!isPrivate) {
+      if (!canonical) {
+        canonical = document.createElement('link')
+        canonical.rel = 'canonical'
+        document.head.append(canonical)
+      }
+      canonical.href = `${canonicalOrigin}${path}`
+    } else {
+      canonical?.remove()
+    }
+  }, [location.pathname])
+
+  return null
+}
 
 function ScrollToHash() {
   const location = useLocation()
@@ -42,6 +104,7 @@ function ScrollToHash() {
 export default function App() {
   return (
     <>
+      <RouteSeo />
       <ScrollToHash />
       <Routes>
         <Route path="/" element={<HomePage />} />
