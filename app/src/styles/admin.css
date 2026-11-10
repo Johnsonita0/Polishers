@@ -24,6 +24,7 @@
 .request-table .request-detail-row td { height: auto; display: table-cell; padding: 14px; border-bottom: 1px solid #e9edef; background: #f8fbfb; white-space: normal; }
 .request-row-summary { cursor: pointer; }
 .request-row-summary:hover { background: #fbfdfd; }
+.request-row-summary:focus-visible { outline: 2px solid #087f88; outline-offset: -2px; }
 .request-row-summary.is-expanded .request-expand-button svg { transform: rotate(180deg); }
 .request-expand-button { width: 28px; height: 28px; display: grid; place-items: center; border: 1px solid #e4eaec; border-radius: 4px; color: #647780; background: white; cursor: pointer; }
 .request-expand-button:hover { border-color: #9edbd9; color: #087f88; }
@@ -38,10 +39,10 @@
 .request-photo-button img { width: 100%; height: 66px; object-fit: cover; border: 1px solid #dfe8e9; border-radius: 4px; background: #edf2f2; transition: border-color .16s ease, transform .16s ease; }
 .request-photo-button:hover img { border-color: #80c4c4; transform: translateY(-1px); }
 .request-photo-button > span { display: inline-flex; align-items: center; gap: 3px; }
-.request-photo-modal { position: fixed; z-index: 100; inset: 0; display: grid; place-items: center; padding: 20px; background: rgba(5, 18, 30, .84); }
-.request-photo-modal > section { position: relative; display: grid; place-items: center; width: min(100%, 1100px); height: min(100%, 900px); }
-.request-photo-modal img { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 4px; box-shadow: 0 20px 70px rgba(0,0,0,.32); }
-.request-photo-modal-close { position: absolute; z-index: 1; top: 8px; right: 8px; width: 38px; height: 38px; display: grid; place-items: center; border: 1px solid #ffffff66; border-radius: 50%; color: white; background: #102538cc; cursor: pointer; }
+.request-photo-modal { position: fixed; z-index: 100; inset: 0; display: grid; place-items: center; overflow: hidden; padding: 16px; background: rgba(5, 18, 30, .84); }
+.request-photo-modal > section { position: relative; display: grid; place-items: center; min-width: 0; min-height: 0; width: min(1100px, calc(100vw - 32px)); height: min(900px, calc(100dvh - 32px)); overflow: hidden; }
+.request-photo-modal img { display: block; width: auto; height: auto; max-width: calc(100vw - 32px); max-height: calc(100dvh - 32px); object-fit: contain; border-radius: 4px; box-shadow: 0 20px 70px rgba(0,0,0,.32); }
+.request-photo-modal-close { position: fixed; z-index: 101; top: max(12px, env(safe-area-inset-top)); right: max(12px, env(safe-area-inset-right)); width: 42px; height: 42px; display: grid; place-items: center; border: 1px solid #ffffff66; border-radius: 50%; color: white; background: #102538e8; cursor: pointer; }
 .request-photo-modal-close:hover { background: #1d3e56; }
 .request-detail-panel dt { margin-bottom: 4px; color: #829198; font-size: 8px; font-weight: 700; text-transform: uppercase; }
 .request-detail-panel dd { margin: 0; overflow-wrap: anywhere; color: #20394c; font-size: 10px; line-height: 1.5; }
@@ -349,9 +350,9 @@
 .newsletter-editor-layout { display: grid; grid-template-columns: minmax(0,1.05fr) minmax(280px,.95fr); align-items: start; gap: 13px; margin-top: 13px; }
 .newsletter-editor-card form { display: grid; gap: 12px; }
 .newsletter-field { min-width: 0; display: grid; gap: 6px; color: #425862; font-size: 10px; font-weight: 700; }
-.newsletter-field > input,.newsletter-field > textarea { width: 100%; min-height: 38px; padding: 9px 10px; border: 1px solid #dfe7e9; border-radius: 4px; outline: none; color: #18334c; background: white; font-size: 10px; font-weight: 400; }
+.newsletter-field > input,.newsletter-field > textarea,.newsletter-field > select { width: 100%; min-height: 38px; padding: 9px 10px; border: 1px solid #dfe7e9; border-radius: 4px; outline: none; color: #18334c; background: white; font-size: 10px; font-weight: 400; }
 .newsletter-field > textarea { min-height: 130px; resize: vertical; line-height: 1.55; }
-.newsletter-field > input:focus,.newsletter-field > textarea:focus { border-color: #59bfc0; box-shadow: 0 0 0 3px rgba(20,156,160,.12); }
+.newsletter-field > input:focus,.newsletter-field > textarea:focus,.newsletter-field > select:focus { border-color: #59bfc0; box-shadow: 0 0 0 3px rgba(20,156,160,.12); }
 .newsletter-field > small { color: #849198; font-size: 8px; font-weight: 400; line-height: 1.5; }
 .newsletter-cta-fields { display: grid; grid-template-columns: minmax(0,.8fr) minmax(0,1.2fr); gap: 10px; }
 .newsletter-image-upload { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
